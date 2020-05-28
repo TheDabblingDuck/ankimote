@@ -5,6 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
     <title>AnkimoteClient</title>
+    <meta name="" content="">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700,400italic&amp;display=swap">
     <link rel="stylesheet" href="assets/fonts/fontawesome-all.min.css">
@@ -12,37 +14,39 @@
     <link rel="stylesheet" href="assets/fonts/material-icons.min.css">
     <link rel="stylesheet" href="assets/fonts/fontawesome5-overrides.min.css">
     <link rel="stylesheet" href="assets/css/Navigation-Clean.css">
-    <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 
 <body class="d-flex flex-column flex-fill" style="overscroll-behavior: none;touch-action: none;">
-    <div class="table-responsive" style="height: 48px;">
-        <table class="table">
-            <thead style="opacity: 1;">
-                <tr>
-                    <th style="padding: 0px;">
-                        <ul class="nav nav-pills nav-justified text-monospace align-items-end">
-                            <li class="nav-item"><a class="nav-link active">Swipes</a></li>
-                            <li class="nav-item"><a class="nav-link" href="taps.html">Taps</a></li>
-                            <li class="nav-item"></li>
-                        </ul>
-                    </th>
-                    <th style="width: 54px;height: 44px;padding: 0px;"><button class="btn d-flex" id="goFullscreenButton" type="button" onclick="goFullscreen()"><i class="material-icons" style="font-size: 28px;">fullscreen</i></button></th>
-                    <th style="width: 54px;height: 44px;padding: 0px;"><button class="btn text-center d-flex justify-content-center align-items-center" id="swipeSettingsButton" type="button" data-toggle="modal" data-target="#swipeSettingsModal"><i class="material-icons" style="font-size: 28px;">settings</i></button></th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+    <div class="d-flex flex-column flex-fill" id="gigaDiv">
+        <div class="table-responsive" style="height: 48px;">
+            <table class="table">
+                <thead style="opacity: 1;">
+                    <tr>
+                        <th style="padding: 0px;">
+                            <ul class="nav nav-pills nav-justified text-monospace align-items-end">
+                                <li class="nav-item"><a class="nav-link active">Swipes</a></li>
+                                <li class="nav-item"><a class="nav-link" href="taps.html">Taps</a></li>
+                                <li class="nav-item"></li>
+                            </ul>
+                        </th>
+                        <th id="fullscreenButtonCell" style="width: 54px;height: 44px;padding: 0px;"><button class="btn d-flex" id="goFullscreenButton" type="button" onclick="goFullscreen()"><i class="material-icons" style="font-size: 28px;">fullscreen</i></button></th>
+                        <th style="width: 54px;height: 44px;padding: 0px;"><button class="btn text-center d-flex justify-content-center align-items-center" id="swipeSettingsButton" type="button" data-toggle="modal" data-target="#swipeSettingsModal"><i class="material-icons" style="font-size: 28px;">settings</i></button></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="btn-group" role="group" id="ambossBar"><button class="btn btn-dark" type="button" disabled="">AMBOSS</button><button class="btn btn-dark border rounded-0 border-secondary" id="ambossPrevButton" type="button" onclick="amboss(0)">Prev</button><button class="btn btn-dark border-secondary" id="ambossNextButton"
+                type="button" onclick="amboss(1)">Next</button><button class="btn btn-dark border rounded-0 border-secondary" id="ambossCloseButton" type="button" onclick="amboss(2)">Close</button></div>
+        <div class="d-flex d-sm-flex flex-grow-1 justify-content-center align-items-center justify-content-sm-center align-items-sm-center"
+            id="swipeArea" style="background-image: url(&quot;assets/img/anki_outline.png&quot;);background-size: 35%;background-repeat: no-repeat;background-position: center;"></div>
     </div>
-    <div class="btn-group" role="group" id="ambossBar"><button class="btn btn-dark" type="button" disabled="">AMBOSS</button><button class="btn btn-dark border rounded-0 border-secondary" id="ambossPrevButton" type="button" onclick="amboss(0)">Prev</button><button class="btn btn-dark border-secondary" id="ambossNextButton"
-            type="button" onclick="amboss(1)">Next</button><button class="btn btn-dark border rounded-0 border-secondary" id="ambossCloseButton" type="button" onclick="amboss(2)">Close</button></div>
-    <div class="d-flex d-sm-flex flex-grow-1 justify-content-center align-items-center justify-content-sm-center align-items-sm-center"
-        id="swipeArea" style="background-image: url(&quot;assets/img/anki_outline.png&quot;);background-size: 35%;background-repeat: no-repeat;background-position: center;"></div>
     <div class="modal fade" role="dialog" tabindex="-1" id="swipeSettingsModal">
-        <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
             <div class="modal-content">
-                <div class="modal-body" style="padding: 16px 24px 24px;">
-                    <h4 class="modal-title text-center" style="padding: 0px 0px 12px;">Swipe Settings</h4>
+                <div class="modal-header text-monospace" style="padding: 12px 20px 8px;">
+                    <h4 class="modal-title" style="font-size: 20px;">Swipe Settings</h4><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button></div>
+                <div class="modal-body" style="padding: 0px 12px 16px;">
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
@@ -77,15 +81,14 @@
                                     <td style="padding: 4px;"><select class="custom-select" id="doubleTapSelect"><option value="0">None</option><option value="1">Good</option><option value="2">Again</option><option value="3">Easy</option><option value="4">Hard</option><option value="5">Undo</option><option value="6">Scroll Up</option><option value="7">Scroll Down</option><option value="8" selected="">Show Hints</option></select></td>
                                 </tr>
                                 <tr>
-                                    <td>AMBOSS Bar</td>
-                                    <td><input type="checkbox" id="ambossBarCheckbox"></td>
+                                    <td style="padding: 12px 12px 0px;">AMBOSS Bar</td>
+                                    <td style="padding: 12px 12px 0px;"><input type="checkbox" id="ambossBarCheckbox"></td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                     <div class="d-flex justify-content-center"><button class="btn btn-primary" type="button" onclick="window.open(&#39;donate.html&#39;, &#39;_blank&#39;);">Buy me a coffee?&nbsp; &nbsp;<i class="fa fa-paypal"></i>&nbsp; &nbsp;<i class="far fa-credit-card"></i>&nbsp; &nbsp; $3.99</button></div>
                 </div>
-                <div class="modal-footer d-flex justify-content-center"><button class="btn btn-light" type="button" data-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>

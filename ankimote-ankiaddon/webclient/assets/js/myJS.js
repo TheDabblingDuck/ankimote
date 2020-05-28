@@ -35,12 +35,12 @@ if(!window.location.pathname.endsWith("donate.html")) {
 
   setTimeout(() => { attemptConnect() }, 500);
 
-  document.addEventListener('touchmove', function(e) {
+  document.getElementById('gigaDiv').addEventListener('touchmove', function(e) {
       e.preventDefault();
   }, { passive: false });
 
   if(!document.webkitFullscreenEnabled) {
-    $('#goFullscreenButton').remove()
+    $('#fullscreenButtonCell').remove()
   }
 
   var ambossBar = document.getElementById('ambossBar')
