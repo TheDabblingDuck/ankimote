@@ -8,6 +8,6 @@ The remote component of Ankimote consists of a native app for Android and a web 
 
 ## Screenshots
 
-![](https://raw.githubusercontent.com/TheDabblingDuck/ankimote/master/screenshots/ankimote-qr.png)
+<img src="screenshots/ankimote-qr.jpg" width="40%" >
 
-![](https://raw.githubusercontent.com/TheDabblingDuck/ankimote/master/screenshots/ankimote-settings.jpg)  ![](https://raw.githubusercontent.com/TheDabblingDuck/ankimote/master/screenshots/ankimote-swipe.png)
+<img src="screenshots/ankimote-settings.jpg" width="40%" > <img src="screenshots/ankimote-swipe.jpg" width="40%" >
