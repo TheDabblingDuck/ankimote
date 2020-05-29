@@ -8,7 +8,7 @@ if(!window.location.pathname.endsWith("donate.html")) {
 
   if( /Android/i.test(navigator.userAgent) ) {
     var deeplink = "intent:#Intent;action=dabblingduckapps.ankimote.openfromweb;category=android.intent.category.DEFAULT;category=android.intent.category.BROWSABLE;S.uri="+encodeURIComponent(wslink)+";S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.chrome.dev;end"
-    window.location.replace(deeplink);
+    // window.location.replace(deeplink);
   }
 
   var dict = {
@@ -47,13 +47,9 @@ if(!window.location.pathname.endsWith("donate.html")) {
 
   function updateAmbossBarVisibility() {
     if(!showAmbossBar) {
-      if(!ambossBar.hasAttribute('style')) {
-        ambossBar.style.display = 'none'
-      }
+      ambossBar.style.display = 'none'
     } else {
-      if(ambossBar.hasAttribute('style')) {
-        ambossBar.removeAttribute('style')
-      }
+      ambossBar.style.display = 'flex'
     }
   }
 
@@ -174,6 +170,186 @@ if(!window.location.pathname.endsWith("donate.html")) {
       //touchend
       setTimeout(function(){ waitSwipeEnd=false; }, 20);
     });
+
+
+  } else {
+
+    //taps.html specific
+
+    // initialize variables
+
+    var leftTapSelect = document.getElementById("leftTapSelect");
+    var leftSwipeSelect = document.getElementById("leftSwipeSelect");
+    var leftLongPressSelect = document.getElementById("leftLongPressSelect");
+    var rightTapSelect = document.getElementById("rightTapSelect");
+    var rightSwipeSelect = document.getElementById("rightSwipeSelect");
+    var rightLongPressSelect = document.getElementById("rightLongPressSelect")
+    var tapAmbossBarCheckbox = document.getElementById("tapAmbossBarCheckbox");
+
+    var leftTapAction=0;
+    var leftSwipeAction=0;
+    var leftLongPressAction=0;
+    var rightTapAction=0
+    var rightSwipeAction=0;
+    var rightLongPressAction=0;
+    var showAmbossBar=false;
+
+    // handle cookies and modal
+
+    if(Cookies.get("leftTapAction")==undefined) {
+      $('#tapSettingsModal').modal('show')
+    } else {
+      leftTapAction = parseInt(Cookies.get("leftTapAction"))
+      leftTapSelect.value = leftTapAction
+      leftSwipeAction = parseInt(Cookies.get("leftSwipeAction"))
+      leftSwipeSelect.value = leftSwipeAction
+      leftLongPressAction = parseInt(Cookies.get("leftLongPressAction"))
+      leftLongPressSelect.value = leftLongPressAction
+      rightTapAction = parseInt(Cookies.get("rightTapAction"))
+      rightTapSelect.value = rightTapAction
+      rightSwipeAction = parseInt(Cookies.get("rightSwipeAction"))
+      rightSwipeSelect.value = rightSwipeAction
+      rightLongPressAction = parseInt(Cookies.get("rightLongPressAction"))
+      rightLongPressSelect.value = rightLongPressAction
+      showAmbossBar = (Cookies.get("tapAmbossBar")=="true")
+      tapAmbossBarCheckbox.checked = showAmbossBar
+      updateAmbossBarVisibility()
+    }
+
+    $('#tapSettingsModal').on('hidden.bs.modal', function (e) {
+      leftTapAction=leftTapSelect.value
+      Cookies.set("leftTapAction",leftTapAction.toString(), { expires: 365 })
+      leftSwipeAction=leftSwipeSelect.value
+      Cookies.set("leftSwipeAction",leftSwipeAction.toString(), { expires: 365 })
+      leftLongPressAction=leftLongPressSelect.value
+      Cookies.set("leftLongPressAction",leftLongPressAction.toString(), { expires: 365 })
+      rightTapAction=rightTapSelect.value
+      Cookies.set("rightTapAction",rightTapAction.toString(), { expires: 365 })
+      rightSwipeAction=rightSwipeSelect.value
+      Cookies.set("rightSwipeAction",rightSwipeAction.toString(), { expires: 365 })
+      rightLongPressAction=rightLongPressSelect.value
+      Cookies.set("rightLongPressAction",rightLongPressAction.toString(), { expires: 365 })
+      showAmbossBar=tapAmbossBarCheckbox.checked
+      Cookies.set("tapAmbossBar",showAmbossBar.toString(), { expires: 365 })
+      updateAmbossBarVisibility()
+    })
+
+    // handle taps
+
+    $('#leftTapArea').on('tap', function(e) {
+      var delay=0
+      if (webSocket.readyState==3) {
+        webSocket = new WebSocket(wslink)
+        setTimeout(() => { attemptConnect() }, 500);
+        delay=200
+      }
+      setTimeout(function(){ webSocket.send(dict[leftTapAction]); }, delay);
+      e.preventDefault();
+    });
+
+    $('#rightTapArea').on('tap', function(e) {
+      var delay=0
+      if (webSocket.readyState==3) {
+        webSocket = new WebSocket(wslink)
+        setTimeout(() => { attemptConnect() }, 500);
+        delay=200
+      }
+      setTimeout(function(){ webSocket.send(dict[rightTapAction]); }, delay);
+      e.preventDefault();
+    });
+
+    // handle swipes
+
+    var waitLeftSwipeEnd = false
+    $('#leftTapArea').on('drag', function(e) {
+      if(!waitLeftSwipeEnd) {
+        waitLeftSwipeEnd=true
+        var delay=0
+        if (webSocket.readyState==3) {
+          webSocket = new WebSocket(wslink)
+          setTimeout(() => { attemptConnect() }, 500);
+          delay=200
+        }
+        if(leftSwipeAction!=9) {
+          setTimeout(function(){ webSocket.send(dict[leftSwipeAction]); }, delay);
+        } else {
+          if(e.orientation=='vertical') {
+            if(e.direction==1) {
+              // swipe Down
+              setTimeout(function(){ webSocket.send("scrollup"); }, delay);
+            } else {
+              //swipe up
+              setTimeout(function(){ webSocket.send("scrolldown"); }, delay);
+            }
+          }
+        }
+      }
+      e.preventDefault();
+    });
+    $('#leftTapArea').on('touchend', function(e) {
+      //touchend
+      setTimeout(function(){ waitLeftSwipeEnd=false; }, 20);
+    });
+
+    var waitRightSwipeEnd = false
+    $('#rightTapArea').on('drag', function(e) {
+      if(!waitRightSwipeEnd) {
+        waitRightSwipeEnd=true
+        var delay=0
+        if (webSocket.readyState==3) {
+          webSocket = new WebSocket(wslink)
+          setTimeout(() => { attemptConnect() }, 500);
+          delay=200
+        }
+        if(rightSwipeAction!=9) {
+          setTimeout(function(){ webSocket.send(dict[rightSwipeAction]); }, delay);
+        } else {
+          if(e.orientation=='vertical') {
+            if(e.direction==1) {
+              // swipe Down
+              setTimeout(function(){ webSocket.send("scrollup"); }, delay);
+            } else {
+              //swipe up
+              setTimeout(function(){ webSocket.send("scrolldown"); }, delay);
+            }
+          }
+        }
+      }
+      e.preventDefault();
+    });
+    $('#rightTapArea').on('touchend', function(e) {
+      //touchend
+      setTimeout(function(){ waitRightSwipeEnd=false; }, 20);
+    });
+
+    // handle long press
+
+    $('#leftTapArea').on('press', function(e) {
+      //long Press
+      var delay=0
+      if(webSocket.readyState==3) {
+        webSocket = new WebSocket(wslink)
+        setTimeout(() => { attemptConnect() }, 500);
+        delay=200
+      }
+      setTimeout(function(){ webSocket.send(dict[leftLongPressAction]); }, delay);
+      window.navigator.vibrate(100);
+      e.preventDefault();
+    });
+
+    $('#rightTapArea').on('press', function(e) {
+      //long Press
+      var delay=0
+      if(webSocket.readyState==3) {
+        webSocket = new WebSocket(wslink)
+        setTimeout(() => { attemptConnect() }, 500);
+        delay=200
+      }
+      setTimeout(function(){ webSocket.send(dict[rightLongPressAction]); }, delay);
+      window.navigator.vibrate(100);
+      e.preventDefault();
+    });
+
 
 
   }
