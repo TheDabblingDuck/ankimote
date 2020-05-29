@@ -40,7 +40,7 @@ if(!window.location.pathname.endsWith("donate.html")) {
   }, { passive: false });
 
   if(!document.webkitFullscreenEnabled) {
-    $('#fullscreenButtonCell').remove()
+    $('#goFullscreenButton').remove()
   }
 
   var ambossBar = document.getElementById('ambossBar')
@@ -236,7 +236,7 @@ if(!window.location.pathname.endsWith("donate.html")) {
 
     // handle taps
 
-    $('#leftTapArea').on('tap', function(e) {
+    $('#leftTapArea').on('tap doubletap', function(e) {
       var delay=0
       if (webSocket.readyState==3) {
         webSocket = new WebSocket(wslink)
@@ -247,7 +247,7 @@ if(!window.location.pathname.endsWith("donate.html")) {
       e.preventDefault();
     });
 
-    $('#rightTapArea').on('tap', function(e) {
+    $('#rightTapArea').on('tap doubletap', function(e) {
       var delay=0
       if (webSocket.readyState==3) {
         webSocket = new WebSocket(wslink)
@@ -372,17 +372,21 @@ if(!window.location.pathname.endsWith("donate.html")) {
     if(document.documentElement.requestFullscreen) {
       if (!document.fullscreenElement) {
           document.documentElement.requestFullscreen();
+          document.getElementById('topMenuDiv').style.marginTop="20px";
       } else {
         if (document.exitFullscreen) {
           document.exitFullscreen();
+          document.getElementById('topMenuDiv').style.marginTop="10px";
         }
       }
     } else if(document.documentElement.webkitRequestFullscreen) {
       if (!document.webkitFullscreenElement) {
           document.documentElement.webkitRequestFullscreen();
+          document.getElementById('topMenuDiv').style.marginTop="20px";
       } else {
         if (document.webkitExitFullscreen) {
           document.webkitExitFullscreen();
+          document.getElementById('topMenuDiv').style.marginTop="10px";
         }
       }
     }
