@@ -121,6 +121,8 @@ gui_hooks.profile_will_close.append(onAnkiClose)
 def handleMessage(msg):
     global caffeinated, caffprocess, cafftimer
 
+    # print('Recd: '+msg)
+
     if msg=="connected" or msg=="disconnected":
         mw.toolbar.draw()
     elif msg=='Hi':

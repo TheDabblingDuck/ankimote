@@ -150,7 +150,7 @@ if(!window.location.pathname.endsWith("donate.html")) {
         delay=200
       }
       setTimeout(function(){ webSocket.send(dict[longPressAction]); }, delay);
-      window.navigator.vibrate(100);
+      if (window.navigator && window.navigator.vibrate) { window.navigator.vibrate(100); }
       e.preventDefault();
     });
 
@@ -236,25 +236,31 @@ if(!window.location.pathname.endsWith("donate.html")) {
 
     // handle taps
 
+    var leftTapAllowed = true
     $('#leftTapArea').on('tap doubletap', function(e) {
-      var delay=0
-      if (webSocket.readyState==3) {
-        webSocket = new WebSocket(wslink)
-        setTimeout(() => { attemptConnect() }, 500);
-        delay=200
+      if(leftTapAllowed) {
+        var delay=0
+        if (webSocket.readyState==3) {
+          webSocket = new WebSocket(wslink)
+          setTimeout(() => { attemptConnect() }, 500);
+          delay=200
+        }
+        setTimeout(function(){ webSocket.send(dict[leftTapAction]); }, delay);
       }
-      setTimeout(function(){ webSocket.send(dict[leftTapAction]); }, delay);
       e.preventDefault();
     });
 
+    var rightTapAllowed = true
     $('#rightTapArea').on('tap doubletap', function(e) {
-      var delay=0
-      if (webSocket.readyState==3) {
-        webSocket = new WebSocket(wslink)
-        setTimeout(() => { attemptConnect() }, 500);
-        delay=200
+      if(rightTapAllowed) {
+        var delay=0
+        if (webSocket.readyState==3) {
+          webSocket = new WebSocket(wslink)
+          setTimeout(() => { attemptConnect() }, 500);
+          delay=200
+        }
+        setTimeout(function(){ webSocket.send(dict[rightTapAction]); }, delay);
       }
-      setTimeout(function(){ webSocket.send(dict[rightTapAction]); }, delay);
       e.preventDefault();
     });
 
@@ -333,7 +339,9 @@ if(!window.location.pathname.endsWith("donate.html")) {
         delay=200
       }
       setTimeout(function(){ webSocket.send(dict[leftLongPressAction]); }, delay);
-      window.navigator.vibrate(100);
+      if (window.navigator && window.navigator.vibrate) { window.navigator.vibrate(100); }
+      leftTapAllowed=false
+      setTimeout(function(){ leftTapAllowed=true; }, 100);
       e.preventDefault();
     });
 
@@ -346,7 +354,9 @@ if(!window.location.pathname.endsWith("donate.html")) {
         delay=200
       }
       setTimeout(function(){ webSocket.send(dict[rightLongPressAction]); }, delay);
-      window.navigator.vibrate(100);
+      if (window.navigator && window.navigator.vibrate) { window.navigator.vibrate(100); }
+      rightTapAllowed = false
+      setTimeout(function(){ rightTapAllowed=true; }, 100);
       e.preventDefault();
     });
 
@@ -367,6 +377,13 @@ if(!window.location.pathname.endsWith("donate.html")) {
     if(a==2) { command = "ambossclose" };
     setTimeout(function(){ webSocket.send(command); }, delay);
   }
+
+  function fixDimensions() {
+    document.getElementById('gigaDiv').style.height=window.innerHeight.toString()+'px';
+    window.scroll(0,0);
+  }
+  window.addEventListener('resize', fixDimensions);
+  fixDimensions();
 
   function goFullscreen() {
     if(document.documentElement.requestFullscreen) {
