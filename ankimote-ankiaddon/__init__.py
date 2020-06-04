@@ -59,7 +59,14 @@ class AnkiSocketServer(QThread):
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=DIRECTORY, **kwargs)
+        try:
+            super().__init__(*args, directory=DIRECTORY, **kwargs)
+        except ConnectionResetError as e:
+            print("Ankimote error (ConnectionResetError)")
+            pass
+        except BrokenPipeError as e:
+            print("Ankimote error (BrokenPipeError)")
+            pass
     def log_message(self, format, *args):
         return
 
@@ -73,9 +80,6 @@ class AnkiWebclientServer(QThread):
         except OSError as e:
             print("OSError caught: "+str(e))
             self.msgHandler.emit("OSError")
-        except ConnectionError as e:
-            print("ConnectionError caught: "+str(e))
-            self.msgHandler.emit("ConnectionError")
         except Exception as e:
             print("Exception caught: "+str(e))
             pass
@@ -93,11 +97,27 @@ def httpServerMsgHandler(msg):
 
 def scrollDown(currOffset):
     zoomlvl = QWebEngineView.zoomFactor(mw.web)
+    # diff=round(mw.web.height()*3/4/zoomlvl)
+    diff = round(mw.web.height()/zoomlvl/50)
+    newOffset=currOffset+diff
+    # mw.web.eval("$(function() { window.scrollTo({ top: %d, behavior: 'smooth', }); });" % newOffset)
+    mw.web.eval("$(function() { window.scrollTo({ top: %d, behavior: 'auto', }); });" % newOffset)
+
+def scrollUp(currOffset):
+    zoomlvl = QWebEngineView.zoomFactor(mw.web)
+    # diff=round(mw.web.height()*3/4/zoomlvl)
+    diff = round(mw.web.height()/zoomlvl/50)
+    newOffset = 0 if currOffset-diff<0 else currOffset-diff
+    # mw.web.eval("$(function() { window.scrollTo({ top: %d, behavior: 'smooth', }); });" % newOffset)
+    mw.web.eval("$(function() { window.scrollTo({ top: %d, behavior: 'auto', }); });" % newOffset)
+
+def pageDown(currOffset):
+    zoomlvl = QWebEngineView.zoomFactor(mw.web)
     diff=round(mw.web.height()*3/4/zoomlvl)
     newOffset=currOffset+diff
     mw.web.eval("$(function() { window.scrollTo({ top: %d, behavior: 'smooth', }); });" % newOffset)
 
-def scrollUp(currOffset):
+def pageUp(currOffset):
     zoomlvl = QWebEngineView.zoomFactor(mw.web)
     diff=round(mw.web.height()*3/4/zoomlvl)
     newOffset = 0 if currOffset-diff<0 else currOffset-diff
@@ -151,6 +171,10 @@ def handleMessage(msg):
                 mw.deckBrowser.web.evalWithCallback('window.pageYOffset', scrollUp)
             elif msg=='scrolldown':
                 mw.deckBrowser.web.evalWithCallback('window.pageYOffset', scrollDown)
+            elif msg=='pageup':
+                mw.deckBrowser.web.evalWithCallback('window.pageYOffset', pageUp)
+            elif msg=='pagedown':
+                mw.deckBrowser.web.evalWithCallback('window.pageYOffset', pageDown)
             elif msg=='ambossnext':
                 mw.web.eval("ambossTooltips.rotateTooltips();")
             elif msg=='ambossprev':
@@ -158,12 +182,17 @@ def handleMessage(msg):
             elif msg=='ambossclose':
                 mw.web.eval("ambossTooltips.hideAll();")
             elif msg=='showhints':
-                showHintsJS = '''var x=document.getElementsByClassName('hint');
+                showHintsJS = '''
+                var x=document.getElementsByClassName('hint');
                 for(i=0;i<x.length;i++) {
                 	if(x[i].tagName=='A') {
                 		x[i].onclick();
                     }
-                }'''
+                };
+                if(!(document.getElementById("io-revl-btn")==null)) {
+                    document.getElementById("io-revl-btn").onclick()
+                };
+                '''
                 mw.web.eval(showHintsJS)
             elif mw.reviewer.card:
                 for ease, label in mw.reviewer._answerButtonList():

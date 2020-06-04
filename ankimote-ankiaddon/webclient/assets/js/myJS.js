@@ -4,6 +4,30 @@
 
 if(!window.location.pathname.endsWith("donate.html")) {
 
+  function changeMode(newMode) {
+    Cookies.set("currentMode",newMode, { expires: 365 })
+    currentMode=newMode
+    if (newMode == "swipes") {
+      $("#container").load("swipes.html #container", function() {
+        generalInit();
+        initSwipes();
+      });
+    }
+    else if (newMode == "taps") {
+      $("#container").load("taps.html #container", function() {
+        generalInit();
+        initTaps();
+      });
+    }
+    else if (newMode == "gestures") {
+
+    }
+  }
+  var currentMode
+  var readMode = Cookies.get("currentMode")
+  if (readMode == undefined) { readMode = "swipes" }
+  changeMode(readMode)
+
   var wslink = "ws://"+window.location.hostname+":"+(parseInt(window.location.port)+1).toString()
 
   if( /Android/i.test(navigator.userAgent) ) {
@@ -25,6 +49,10 @@ if(!window.location.pathname.endsWith("donate.html")) {
 
   var webSocket = new WebSocket(wslink)
 
+  $(window).on("unload",function() {
+    webSocket.close()
+  });
+
   function attemptConnect() {
     if (webSocket.readyState==1) {
       webSocket.send("Hi");
@@ -35,15 +63,22 @@ if(!window.location.pathname.endsWith("donate.html")) {
 
   setTimeout(() => { attemptConnect() }, 500);
 
-  document.getElementById('gigaDiv').addEventListener('touchmove', function(e) {
-      e.preventDefault();
-  }, { passive: false });
+  function generalInit() {
 
-  if(!document.webkitFullscreenEnabled) {
-    $('#goFullscreenButton').remove()
+    document.getElementById('gigaDiv').addEventListener('touchmove', function(e) {
+        e.preventDefault();
+    }, { passive: false });
+
+    if(!document.webkitFullscreenEnabled) {
+      $('#goFullscreenButton').remove()
+    }
+
   }
 
-  var ambossBar = document.getElementById('ambossBar')
+
+
+  var showAmbossBar = false
+  var ambossBar
 
   function updateAmbossBarVisibility() {
     if(!showAmbossBar) {
@@ -53,9 +88,13 @@ if(!window.location.pathname.endsWith("donate.html")) {
     }
   }
 
-  if(!window.location.pathname.endsWith("taps.html")) {
+  function initSwipes() {
 
     var waitSwipeEnd = false
+    var lastX = -1
+    var lastY = -1
+    var numScrollEvents = 0
+    var scrollDir = 0
 
     var swipeRightSelect = document.getElementById("swipeRightSelect");
     var swipeLeftSelect = document.getElementById("swipeLeftSelect");
@@ -64,6 +103,7 @@ if(!window.location.pathname.endsWith("donate.html")) {
     var longPressSelect = document.getElementById("longPressSelect");
     var doubleTapSelect = document.getElementById("doubleTapSelect")
     var showAmbossBarCheckbox = document.getElementById("ambossBarCheckbox");
+    ambossBar = document.getElementById('ambossBar')
 
     var swipeRightAction=0;
     var swipeLeftAction=0;
@@ -71,7 +111,6 @@ if(!window.location.pathname.endsWith("donate.html")) {
     var swipeDownAction=0
     var longPressAction=0;
     var doubleTapAction=0;
-    var showAmbossBar=false;
 
     if(Cookies.get("swipeRightAction")==undefined) {
       $('#swipeSettingsModal').modal('show')
@@ -113,32 +152,83 @@ if(!window.location.pathname.endsWith("donate.html")) {
 
     $('#swipeArea').on('drag', function(e) {
       if(!waitSwipeEnd) {
-        waitSwipeEnd=true
+        waitSwipeEnd = true
         var delay=0
         if (webSocket.readyState==3) {
           webSocket = new WebSocket(wslink)
           setTimeout(() => { attemptConnect() }, 500);
           delay=200
         }
+        var actionstr=''
         if(e.orientation=='horizontal') {
           if(e.direction==1) {
             // swipe Right
-            setTimeout(function(){ webSocket.send(dict[swipeRightAction]); }, delay);
+            actionstr=dict[swipeRightAction]
           } else {
             // swipe left
-            setTimeout(function(){ webSocket.send(dict[swipeLeftAction]); }, delay);
+            actionstr=dict[swipeLeftAction]
           }
         } else {
           if(e.direction==1) {
             // swipe Down
-            setTimeout(function(){ webSocket.send(dict[swipeDownAction]); }, delay);
+            actionstr=dict[swipeDownAction]
           } else {
             //swipe up
-            setTimeout(function(){ webSocket.send(dict[swipeUpAction]); }, delay);
+            actionstr=dict[swipeUpAction]
           }
         }
+        if(actionstr=='scrollup' || actionstr=='scrolldown') {
+          var pageupdown = false
+          var flip = false
+          var dx = e.x-lastX
+          if (lastX==-1) dx=0
+          var dy = e.y-lastY
+          if (lastY==-1) dy=0
+          if(e.orientation=='horizontal') {
+            if (Math.abs(dx)<0.5) {
+              actionstr = 'none'
+            } else if (dx*e.direction<0) {
+              flip=true
+            }
+            if(Math.abs(dx)>30) pageupdown=true
+          } else {
+            if (Math.abs(dy)<0.5) {
+              actionstr = 'none'
+            } else if(dy*e.direction<0) {
+              flip=true
+            }
+            if(Math.abs(dy)>30) pageupdown = true
+          }
+          if(flip) {
+            if(actionstr=='scrollup') {
+              actionstr = 'scrolldown'
+            } else if(actionstr=='scrolldown') {
+              actionstr = 'scrollup'
+            }
+          }
+          if(actionstr=='scrolldown') {
+            scrollDir=1
+          } else if(actionstr=='scrollup') {
+            scrollDir=-1
+          }
+          numScrollEvents=numScrollEvents+1
+          lastX=e.x
+          lastY=e.y
+          if(pageupdown && numScrollEvents<4) {
+            if(actionstr=='scrolldown') {
+              actionstr='pagedown'
+              numScrollEvents=0
+            } else if(actionstr=='scrollup') {
+              actionstr='pageup'
+              numScrollEvents=0
+            }
+          } else {
+            setTimeout(function(){ waitSwipeEnd = false; }, 10);
+          }
+        }
+        if(actionstr!='none') setTimeout(function(){ webSocket.send(actionstr); }, delay);
+        e.preventDefault();
       }
-      e.preventDefault();
     });
 
     $('#swipeArea').on('press', function(e) {
@@ -166,13 +256,31 @@ if(!window.location.pathname.endsWith("donate.html")) {
       e.preventDefault();
     });
 
+    function touchendfunc() {
+      if(numScrollEvents>0 && numScrollEvents<10) {
+        if(scrollDir==1) {
+          webSocket.send('pagedown');
+        } else if (scrollDir==-1) {
+          webSocket.send('pageup');
+        }
+      };
+      numScrollEvents=0;
+      scrollDir=0;
+      waitSwipeEnd=false;
+      lastX=-1;
+      lastY=-1;
+    }
+
     $('#swipeArea').on('touchend', function(e) {
       //touchend
-      setTimeout(function(){ waitSwipeEnd=false; }, 20);
+      setTimeout(function(){ touchendfunc(); }, 20);
     });
 
 
-  } else {
+  }
+
+
+  function initTaps() {
 
     //taps.html specific
 
@@ -185,6 +293,7 @@ if(!window.location.pathname.endsWith("donate.html")) {
     var rightSwipeSelect = document.getElementById("rightSwipeSelect");
     var rightLongPressSelect = document.getElementById("rightLongPressSelect")
     var tapAmbossBarCheckbox = document.getElementById("tapAmbossBarCheckbox");
+    ambossBar = document.getElementById('ambossBar')
 
     var leftTapAction=0;
     var leftSwipeAction=0;
@@ -192,7 +301,6 @@ if(!window.location.pathname.endsWith("donate.html")) {
     var rightTapAction=0
     var rightSwipeAction=0;
     var rightLongPressAction=0;
-    var showAmbossBar=false;
 
     // handle cookies and modal
 
@@ -267,6 +375,9 @@ if(!window.location.pathname.endsWith("donate.html")) {
     // handle swipes
 
     var waitLeftSwipeEnd = false
+    var LlastY = -1
+    var LnumScrollEvents = 0
+    var LscrollDir = 0
     $('#leftTapArea').on('drag', function(e) {
       if(!waitLeftSwipeEnd) {
         waitLeftSwipeEnd=true
@@ -276,28 +387,72 @@ if(!window.location.pathname.endsWith("donate.html")) {
           setTimeout(() => { attemptConnect() }, 500);
           delay=200
         }
-        if(leftSwipeAction!=9) {
+        if(leftSwipeAction!=9 && leftSwipeAction!=10) {
           setTimeout(function(){ webSocket.send(dict[leftSwipeAction]); }, delay);
         } else {
           if(e.orientation=='vertical') {
+            var actionstr=''
             if(e.direction==1) {
               // swipe Down
-              setTimeout(function(){ webSocket.send("scrollup"); }, delay);
+              if(leftSwipeAction==9) actionstr='scrollup'
+              else actionstr= 'scrolldown'
             } else {
               //swipe up
-              setTimeout(function(){ webSocket.send("scrolldown"); }, delay);
+              if(leftSwipeAction==9) actionstr='scrolldown'
+              else actionstr= 'scrollup'
             }
+            var dy = e.y-LlastY
+            if (LlastY==-1) dy=0
+            if (Math.abs(dy)<0.5) {
+              actionstr = 'none'
+            } else if(dy*e.direction<0) {
+              if(actionstr=='scrollup') actionstr = 'scrolldown'
+              else actionstr = 'scrollup'
+            }
+            if(actionstr=='scrolldown') LscrollDir=1
+            else LscrollDir=-1
+            LnumScrollEvents=LnumScrollEvents+1
+            LlastX=e.x
+            LlastY=e.y
+            if(Math.abs(dy)>30 && LnumScrollEvents<4) {
+              if(actionstr=='scrolldown') {
+                actionstr='pagedown'
+                LnumScrollEvents=0
+              } else if(actionstr=='scrollup') {
+                actionstr='pageup'
+                LnumScrollEvents=0
+              }
+            } else {
+              setTimeout(function(){ waitLeftSwipeEnd = false; }, 10);
+            }
+            if(actionstr!='none') setTimeout(function(){ webSocket.send(actionstr); }, delay);
           }
         }
       }
       e.preventDefault();
     });
+    function Ltouchendfunc() {
+      if(LnumScrollEvents>0 && LnumScrollEvents<10) {
+        if(LscrollDir==1) {
+          webSocket.send('pagedown');
+        } else if (LscrollDir==-1) {
+          webSocket.send('pageup');
+        }
+      };
+      LnumScrollEvents=0;
+      LscrollDir=0;
+      waitLeftSwipeEnd=false;
+      LlastY=-1;
+    }
     $('#leftTapArea').on('touchend', function(e) {
       //touchend
-      setTimeout(function(){ waitLeftSwipeEnd=false; }, 20);
+      setTimeout(function(){ Ltouchendfunc(); }, 20);
     });
 
     var waitRightSwipeEnd = false
+    var RlastY = -1
+    var RnumScrollEvents = 0
+    var RscrollDir = 0
     $('#rightTapArea').on('drag', function(e) {
       if(!waitRightSwipeEnd) {
         waitRightSwipeEnd=true
@@ -307,25 +462,66 @@ if(!window.location.pathname.endsWith("donate.html")) {
           setTimeout(() => { attemptConnect() }, 500);
           delay=200
         }
-        if(rightSwipeAction!=9) {
+        if(rightSwipeAction!=9 && rightSwipeAction!=10) {
           setTimeout(function(){ webSocket.send(dict[rightSwipeAction]); }, delay);
         } else {
           if(e.orientation=='vertical') {
+            var actionstr=''
             if(e.direction==1) {
               // swipe Down
-              setTimeout(function(){ webSocket.send("scrollup"); }, delay);
+              if(rightSwipeAction==9) actionstr='scrollup'
+              else actionstr= 'scrolldown'
             } else {
               //swipe up
-              setTimeout(function(){ webSocket.send("scrolldown"); }, delay);
+              if(rightSwipeAction==9) actionstr='scrolldown'
+              else actionstr= 'scrollup'
             }
+            var dy = e.y-RlastY
+            if (RlastY==-1) dy=0
+            if (Math.abs(dy)<0.5) {
+              actionstr = 'none'
+            } else if(dy*e.direction<0) {
+              if(actionstr=='scrollup') actionstr = 'scrolldown'
+              else actionstr = 'scrollup'
+            }
+            if(actionstr=='scrolldown') RscrollDir=1
+            else RscrollDir=-1
+            RnumScrollEvents=RnumScrollEvents+1
+            RlastX=e.x
+            RlastY=e.y
+            if(Math.abs(dy)>30 && RnumScrollEvents<4) {
+              if(actionstr=='scrolldown') {
+                actionstr='pagedown'
+                RnumScrollEvents=0
+              } else if(actionstr=='scrollup') {
+                actionstr='pageup'
+                RnumScrollEvents=0
+              }
+            } else {
+              setTimeout(function(){ waitRightSwipeEnd = false; }, 10);
+            }
+            if(actionstr!='none') setTimeout(function(){ webSocket.send(actionstr); }, delay);
           }
         }
       }
       e.preventDefault();
     });
+    function Rtouchendfunc() {
+      if(RnumScrollEvents>0 && RnumScrollEvents<10) {
+        if(RscrollDir==1) {
+          webSocket.send('pagedown');
+        } else if (RscrollDir==-1) {
+          webSocket.send('pageup');
+        }
+      };
+      RnumScrollEvents=0;
+      RscrollDir=0;
+      waitRightSwipeEnd=false;
+      RlastY=-1;
+    }
     $('#rightTapArea').on('touchend', function(e) {
       //touchend
-      setTimeout(function(){ waitRightSwipeEnd=false; }, 20);
+      setTimeout(function(){ Rtouchendfunc(); }, 20);
     });
 
     // handle long press
@@ -379,7 +575,16 @@ if(!window.location.pathname.endsWith("donate.html")) {
   }
 
   function fixDimensions() {
-    document.getElementById('gigaDiv').style.height=window.innerHeight.toString()+'px';
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      var matches = "true"
+      var newHeight = document.documentElement.clientHeight
+    } else {
+      var matches = "false"
+      var newHeight = window.innerHeight
+    }
+    //alert("innerHeight: " + window.innerHeight + "\ninnerWidth: " + window.innerWidth + "\norientation: " + window.orientation + "\nscreenheight: " + screen.height + "\nscreenwidth" + screen.width + "\nscreenavailheight" + screen.availHeight + "\nscreenavailwidth"+ screen.availWidth+ "\nclientheight" + document.documentElement.clientHeight + "\nclientwidth"+ document.documentElement.clientWidth+ "\nstandalone: "+matches)
+
+    document.body.style.height=newHeight.toString()+'px';
     window.scroll(0,0);
   }
   window.addEventListener('resize', fixDimensions);
