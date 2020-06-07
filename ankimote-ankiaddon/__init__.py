@@ -8,6 +8,7 @@ if 'win32' in sys.platform:
 sys.path.insert(0, os.path.dirname(__file__))
 
 import socket
+import ssl
 from simple_websocket_server import WebSocketServer, WebSocket
 
 # import the main window object (mw) from aqt
@@ -26,6 +27,8 @@ from pathlib import Path
 PORT = 61337
 DIRECTORY = str(Path(__file__).with_name("webclient").absolute())
 
+USERFILES = str(Path(__file__).with_name("user_files").absolute())
+
 mw.ankimote = type('ankimote', (), {})()
 caffeinated=False
 caffprocess=None
@@ -37,7 +40,18 @@ class SimpleAnki(WebSocket):
     def handle(self):
         # echo message back to client
         # self.send_message(self.data)
-        mw.ankimote.wssThread.msgHandler.emit(self.data)
+        msg = self.data
+        if not msg.startswith('getprefs'):
+            mw.ankimote.wssThread.msgHandler.emit(msg)
+        else:
+            split = msg.split('-')
+            filepath = USERFILES+'/'+split[1]
+            with open(filepath, 'r') as reader:
+                content = reader.readlines()
+                if len(content)==0:
+                    self.send_message(split[1]+'-X')
+                else:
+                    self.send_message(split[1]+'-'+content[0])
 
     def connected(self):
         print(self.address, 'connected')
@@ -54,6 +68,7 @@ class AnkiSocketServer(QThread):
     def run(self):
         global PORT
         self.server=WebSocketServer('', (PORT+1), SimpleAnki)
+        # self.server=WebSocketServer('', (PORT+1), SimpleAnki, dict(certfile='./webclient/localhost+1.pem', keyfile='./webclient/localhost+1-key.pem', ssl_version=ssl.PROTOCOL_TLSv1))
         print("AnkiSocketServer run on port: "+str(PORT+1))
         self.server.serve_forever()
 
@@ -162,6 +177,12 @@ def handleMessage(msg):
         elif 'win32' in sys.platform:
             ctypes.windll.kernel32.SetThreadExecutionState(0x00000002)
 
+        if msg.startswith('setprefs'):
+            split = msg.split('-')
+            filepath = USERFILES+'/'+split[1]
+            with open(filepath, 'w') as writer:
+                writer.write(split[2])
+
         if mw.state=='review' and msg!='none':
             if msg=='good' and mw.reviewer.state=='question':
                 mw.reviewer._showAnswer()
@@ -208,6 +229,7 @@ def runRemote():
         s.connect(("8.8.8.8", 80))
         ipaddr = s.getsockname()[0]
         wsaddr = 'http://' + ipaddr + ':' + str(PORT)
+        # wsaddr = 'wss://' + ipaddr + ':' + str(PORT+1)
         ipChanged=(previp!=ipaddr)
         if(ipChanged):
             if(hasattr(mw.ankimote,'wssThread')): mw.ankimote.wssThread.terminate()
