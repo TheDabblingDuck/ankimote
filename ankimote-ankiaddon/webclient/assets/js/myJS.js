@@ -122,7 +122,7 @@ function initSwitchdeck() {
       }
       $('#listGroup li').on('click', function (e) {
         e.preventDefault()
-        webSocket.send('setdeck~#$#~'+$(this)[0].innerText)
+        webSocket.send('setdeck~#$#~'+$(this)[0].innerHTML)
       })
     }
   }
