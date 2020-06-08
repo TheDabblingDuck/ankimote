@@ -8,7 +8,6 @@ if 'win32' in sys.platform:
 sys.path.insert(0, os.path.dirname(__file__))
 
 import socket
-import ssl
 from simple_websocket_server import WebSocketServer, WebSocket
 
 # import the main window object (mw) from aqt
@@ -21,10 +20,12 @@ from aqt.qt import *
 from aqt.webview import AnkiWebView, QWebEngineView
 from aqt import gui_hooks
 
+import json
+
 import http.server
 import socketserver
 from pathlib import Path
-PORT = 61337
+PORT = 61335
 DIRECTORY = str(Path(__file__).with_name("webclient").absolute())
 
 USERFILES = str(Path(__file__).with_name("user_files").absolute())
@@ -33,7 +34,6 @@ mw.ankimote = type('ankimote', (), {})()
 caffeinated=False
 caffprocess=None
 cafftimer=None
-previp=None
 qrvisible=False
 
 class SimpleAnki(WebSocket):
@@ -41,9 +41,7 @@ class SimpleAnki(WebSocket):
         # echo message back to client
         # self.send_message(self.data)
         msg = self.data
-        if not msg.startswith('getprefs'):
-            mw.ankimote.wssThread.msgHandler.emit(msg)
-        else:
+        if msg.startswith('getprefs'):
             split = msg.split('-')
             filepath = USERFILES+'/'+split[1]
             with open(filepath, 'r') as reader:
@@ -52,6 +50,11 @@ class SimpleAnki(WebSocket):
                     self.send_message(split[1]+'-X')
                 else:
                     self.send_message(split[1]+'-'+content[0])
+        elif msg=='getdecklist':
+            decklist = sorted(mw.col.decks.allNames())
+            self.send_message('decklist~#$#~'+json.dumps(decklist))
+        else:
+            mw.ankimote.wssThread.msgHandler.emit(msg)
 
     def connected(self):
         print(self.address, 'connected')
@@ -63,12 +66,10 @@ class SimpleAnki(WebSocket):
 
 class AnkiSocketServer(QThread):
     msgHandler = pyqtSignal(str)
-    server=None
 
     def run(self):
         global PORT
         self.server=WebSocketServer('', (PORT+1), SimpleAnki)
-        # self.server=WebSocketServer('', (PORT+1), SimpleAnki, dict(certfile='./webclient/localhost+1.pem', keyfile='./webclient/localhost+1-key.pem', ssl_version=ssl.PROTOCOL_TLSv1))
         print("AnkiSocketServer run on port: "+str(PORT+1))
         self.server.serve_forever()
 
@@ -100,30 +101,24 @@ class AnkiWebclientServer(QThread):
             pass
 
 def httpServerMsgHandler(msg):
-    global PORT, previp
+    global PORT
     if msg=="OSError":
         print('OSError handler triggered')
-        previp=""
         removeQRandBlur()
-        PORT=PORT+2
         runRemote()
     elif msg=="ConnectionError":
         showInfo('Connection error, please retry.',title='Ankimote')
 
 def scrollDown(currOffset):
     zoomlvl = QWebEngineView.zoomFactor(mw.web)
-    # diff=round(mw.web.height()*3/4/zoomlvl)
     diff = round(mw.web.height()/zoomlvl/50)
     newOffset=currOffset+diff
-    # mw.web.eval("$(function() { window.scrollTo({ top: %d, behavior: 'smooth', }); });" % newOffset)
     mw.web.eval("$(function() { window.scrollTo({ top: %d, behavior: 'auto', }); });" % newOffset)
 
 def scrollUp(currOffset):
     zoomlvl = QWebEngineView.zoomFactor(mw.web)
-    # diff=round(mw.web.height()*3/4/zoomlvl)
     diff = round(mw.web.height()/zoomlvl/50)
     newOffset = 0 if currOffset-diff<0 else currOffset-diff
-    # mw.web.eval("$(function() { window.scrollTo({ top: %d, behavior: 'smooth', }); });" % newOffset)
     mw.web.eval("$(function() { window.scrollTo({ top: %d, behavior: 'auto', }); });" % newOffset)
 
 def pageDown(currOffset):
@@ -147,9 +142,9 @@ def killCaffProcess():
 def onAnkiClose():
     killCaffProcess()
     if(hasattr(mw.ankimote,'httpServerThread')):
-        mw.ankimote.httpServerThread.quit()
+        mw.ankimote.httpServerThread.terminate()
     if(hasattr(mw.ankimote,'wssThread')):
-        mw.ankimote.wssThread.quit()
+        mw.ankimote.wssThread.terminate()
 
 gui_hooks.profile_will_close.append(onAnkiClose)
 
@@ -182,8 +177,11 @@ def handleMessage(msg):
             filepath = USERFILES+'/'+split[1]
             with open(filepath, 'w') as writer:
                 writer.write(split[2])
-
-        if mw.state=='review' and msg!='none':
+        elif msg.startswith('setdeck'):
+            split = msg.split('~#$#~')
+            mw.col.decks.select(mw.col.decks.id(split[1]))
+            mw.moveToState("review")
+        elif mw.state=='review' and msg!='none':
             if msg=='good' and mw.reviewer.state=='question':
                 mw.reviewer._showAnswer()
             elif msg=='undo':
@@ -223,30 +221,28 @@ def handleMessage(msg):
 mw.ankimote.handleMessage = handleMessage
 
 def runRemote():
-    global createqrjs1, createqrjs2, createqrjsMID, previp, qrvisible
+    global createqrjs1, createqrjs2, createqrjsMID, qrvisible, PORT
     if not qrvisible:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         ipaddr = s.getsockname()[0]
+        PORT=PORT+2
         wsaddr = 'http://' + ipaddr + ':' + str(PORT)
-        # wsaddr = 'wss://' + ipaddr + ':' + str(PORT+1)
-        ipChanged=(previp!=ipaddr)
-        if(ipChanged):
-            if(hasattr(mw.ankimote,'wssThread')): mw.ankimote.wssThread.terminate()
-            if(hasattr(mw.ankimote,'httpServerThread')): mw.ankimote.httpServerThread.terminate()
-        if ipChanged or not hasattr(mw.ankimote, 'wssThread'):
-            print('Initializing new WSS')
-            previp=ipaddr
-            mw.ankimote.wssThread = AnkiSocketServer()
-            mw.ankimote.wssThread.moveToThread(mw.ankimote.wssThread)
-            mw.ankimote.wssThread.msgHandler.connect(handleMessage)
-            mw.ankimote.wssThread.start()
-        if ipChanged or not hasattr(mw.ankimote,'httpServerThread'):
-            print('Initializing new http Server')
-            mw.ankimote.httpServerThread = AnkiWebclientServer()
-            mw.ankimote.httpServerThread.moveToThread(mw.ankimote.httpServerThread)
-            mw.ankimote.httpServerThread.msgHandler.connect(httpServerMsgHandler)
-            mw.ankimote.httpServerThread.start()
+        if hasattr(mw.ankimote,'wssThread'):
+            mw.ankimote.wssThread.terminate()
+        if hasattr(mw.ankimote,'httpServerThread'):
+            mw.ankimote.httpServerThread.terminate()
+        print('Initializing new WSS')
+        mw.ankimote.wssThread = AnkiSocketServer()
+        mw.ankimote.wssThread.moveToThread(mw.ankimote.wssThread)
+        mw.ankimote.wssThread.msgHandler.connect(handleMessage)
+        mw.ankimote.wssThread.start()
+        mw.toolbar.draw()
+        print('Initializing new http Server')
+        mw.ankimote.httpServerThread = AnkiWebclientServer()
+        mw.ankimote.httpServerThread.moveToThread(mw.ankimote.httpServerThread)
+        mw.ankimote.httpServerThread.msgHandler.connect(httpServerMsgHandler)
+        mw.ankimote.httpServerThread.start()
 
         quote = '"'
         finaljs = createqrjs1+wsaddr+createqrjsMID+quote+wsaddr+quote+createqrjs2
@@ -285,8 +281,9 @@ mw.toolbar.link_handlers["ankimote"] = runRemote
 
 def addlink(links, toolbar):
     hasConnection=False
-    if(hasattr(mw.ankimote,'wssThread')):
-        hasConnection = (len(mw.ankimote.wssThread.server.connections)>0)
+    if hasattr(mw.ankimote,'wssThread'):
+        if hasattr(mw.ankimote.wssThread,'server'):
+            hasConnection = (len(mw.ankimote.wssThread.server.connections)>0)
     text = "Remote " + ("✔" if hasConnection else "✘")
     toolbaritem = toolbar.create_link("ankimote-toolbaritem",text,runRemote,"Shortcut: Ctrl+Shift+R")
     links.insert(len(links)-1,toolbaritem)

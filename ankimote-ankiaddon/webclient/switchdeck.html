@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html style="height: 100%;">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <title>AnkimoteClient</title>
+    <meta name="theme-color" content="rgb(0,0,0)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="height=device-height, width=device-width, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,700&amp;display=swap">
+    <link rel="stylesheet" href="assets/fonts/fontawesome-all.min.css">
+    <link rel="stylesheet" href="assets/fonts/font-awesome.min.css">
+    <link rel="stylesheet" href="assets/fonts/material-icons.min.css">
+    <link rel="stylesheet" href="assets/fonts/fontawesome5-overrides.min.css">
+    <link rel="stylesheet" href="assets/css/button.css">
+    <link rel="stylesheet" href="assets/css/Navigation-Clean.css">
+</head>
+
+<body class="d-flex flex-column flex-fill" id="body" style="overscroll-behavior: none;touch-action: none;">
+    <div class="d-flex flex-column flex-fill" id="container">
+        <div class="d-flex flex-column flex-fill" id="gigaDiv">
+            <div class="d-flex" id="topMenuDiv" style="margin: 10px;">
+                <div class="dropdown d-flex flex-grow-1 flex-fill"><button class="btn btn-primary dropdown-toggle text-monospace border rounded" data-toggle="dropdown" aria-expanded="false" type="button" style="font-weight: bold;background-color: #1b1840;min-width: 180px;">Switch Deck&nbsp;</button>
+                    <div
+                        class="dropdown-menu border rounded" role="menu" style="background-color: rgb(0,0,0);padding: 0px;min-width: 180px;"><a class="dropdown-item text-monospace border rounded-0 border-secondary d-flex justify-content-center" role="presentation" style="font-weight: bold;padding: 12px 24px;" onclick="changeMode(&quot;swipes&quot;)">Swipes</a><a class="dropdown-item text-monospace border rounded-0 border-secondary d-flex justify-content-center"
+                            role="presentation" style="font-weight: bold;padding: 12px 24px;" onclick="changeMode(&quot;taps&quot;)">Taps</a><a class="dropdown-item text-monospace border rounded-0 border-secondary d-flex justify-content-center" role="presentation" style="font-weight: bold;padding: 12px 24px;"
+                            onclick="changeMode(&quot;gestures&quot;)">Gestures</a></div>
+            </div>
+            <div class="btn-group border rounded" role="group"><button class="btn border rounded-0 border-secondary d-flex justify-content-center align-items-center" id="goFullscreenButton" type="button" onclick="goFullscreen()"><i class="material-icons" style="font-size: 28px;">fullscreen</i></button></div>
+        </div>
+        <ul class="list-group text-white border rounded" id="listGroup" style="margin-right: 10px;margin-bottom: 20px;margin-left: 10px;overflow-y: auto;"></ul>
+    </div>
+    </div>
+    <script src="assets/js/jquery.min.js"></script>
+    <script src="assets/bootstrap/js/bootstrap.min.js"></script>
+</body>
+
+</html>

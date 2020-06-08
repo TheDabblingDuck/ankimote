@@ -1,26 +1,3 @@
-function changeMode(newMode) {
-  Cookies.set("currentMode",newMode, { expires: 365 })
-  currentMode=newMode
-  if (newMode == "swipes") {
-    $("#container").load("swipes.html #container", function() {
-      generalInit();
-      initSwipes();
-    });
-  }
-  else if (newMode == "taps") {
-    $("#container").load("taps.html #container", function() {
-      generalInit();
-      initTaps();
-    });
-  }
-  else if (newMode == "gestures") {
-
-  }
-}
-var currentMode
-var readMode = Cookies.get("currentMode")
-if (readMode == undefined) { readMode = "swipes" }
-changeMode(readMode)
 
 // if( /Android/i.test(navigator.userAgent) ) {
 //   var deeplink = "intent:#Intent;action=dabblingduckapps.ankimote.openfromweb;category=android.intent.category.DEFAULT;category=android.intent.category.BROWSABLE;S.uri="+encodeURIComponent(wslink)+";S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.chrome.dev;end"
@@ -39,28 +16,72 @@ var dict = {
   8: "showhints"
 };
 
-var wslink = "ws://"+window.location.hostname+":"+(parseInt(window.location.port)+1).toString()
-var webSocket = new WebSocket(wslink)
+function changeMode(newMode) {
+  webSocket.send('setprefs-currentmode-'+newMode)
+  if (newMode == "swipes") {
+    $("#container").load("swipes.html #container", function() {
+      generalInit();
+      initSwipes();
+    });
+  }
+  else if (newMode == "taps") {
+    $("#container").load("taps.html #container", function() {
+      generalInit();
+      initTaps();
+    });
+  }
+  else if (newMode == "gestures") {
 
-function attemptConnect() {
-  if (webSocket.readyState==1) {
-    webSocket.send("Hi");
-  } else {
-    alert("Connection Error")
+  }
+  else if (newMode == "switchdeck") {
+    $("#container").load("switchdeck.html #container", function() {
+      initSwitchdeck()
+    });
   }
 }
 
-setTimeout(() => { attemptConnect() }, 500);
+var wslink = "ws://"+window.location.hostname+":"+(parseInt(window.location.port)+1).toString()
+var webSocket
+var choosingMode = true
 
+function createSocket() {
+  webSocket = new WebSocket(wslink)
+
+  webSocket.onopen = function(event) {
+    webSocket.send('Hi');
+    if(choosingMode) {
+      webSocket.onmessage = function(event) {
+        console.log(event.data)
+        var msg = event.data.split('-')
+        if (msg[0]=='currentmode') {
+          choosingMode=false
+          if (msg[1]=='X') {
+            changeMode('swipes')
+          } else {
+            changeMode(msg[1])
+          }
+        }
+      }
+      webSocket.send('getprefs-currentmode')
+    }
+  };
+
+  webSocket.onerror = function(event) {
+    alert("Connection Error");
+  };
+
+  webSocket.onclose = function(event) {
+    if(!document.hidden) alert("Connection Closed");
+  };
+}
+
+createSocket()
 
 function handleVisibilityChange() {
   if (document.hidden) {
     webSocket.close()
   } else  {
-    if (webSocket.readyState!=1) {
-      webSocket = new WebSocket(wslink)
-      setTimeout(() => { attemptConnect() }, 1000);
-    }
+    if(webSocket.readyState!=1) createSocket();
     fixDimensions();
   }
 }
@@ -79,6 +100,35 @@ function generalInit() {
 
 }
 
+
+function initSwitchdeck() {
+  if(!document.webkitFullscreenEnabled) {
+    $('#goFullscreenButton').remove()
+  }
+
+  var listGroup = document.getElementById('listGroup')
+
+  webSocket.onmessage = function (event) {
+    console.log(event.data)
+    var msg = event.data.split('~#$#~')
+    if (msg[0]=='decklist') {
+      decklist = JSON.parse(msg[1])
+      for(i=0;i<decklist.length;i++) {
+        var li = document.createElement("li");
+        li.className = "list-group-item";
+        li.setAttribute("style","background-color: rgb(0,0,0);")
+        li.appendChild(document.createTextNode(decklist[i]));
+        listGroup.appendChild(li);
+      }
+      $('#listGroup li').on('click', function (e) {
+        e.preventDefault()
+        webSocket.send('setdeck~#$#~'+$(this)[0].innerText)
+      })
+    }
+  }
+  webSocket.send('getdecklist')
+
+}
 
 
 var showAmbossBar = false
@@ -119,37 +169,37 @@ function initSwipes() {
   webSocket.onmessage = function(event) {
     console.log(event.data)
     var msg = event.data.split('-')
-    if (msg[0]=='swipeprefs' && msg[1]!='X') {
-      recdprefs=true
-      var split = msg[1].split(',')
-      swipeRightAction=parseInt(split[0])
-      swipeLeftAction=parseInt(split[1])
-      swipeUpAction=parseInt(split[2])
-      swipeDownAction=parseInt(split[3])
-      longPressAction=parseInt(split[4])
-      doubleTapAction=parseInt(split[5])
-      showAmbossBar=(split[6]=='true')
-      swipeRightSelect.selectedIndex = swipeRightAction
-      swipeLeftSelect.selectedIndex = swipeLeftAction
-      swipeUpSelect.selectedIndex = swipeUpAction
-      swipeDownSelect.selectedIndex = swipeDownAction
-      longPressSelect.selectedIndex = longPressAction
-      doubleTapSelect.selectedIndex = doubleTapAction
-      showAmbossBarCheckbox.checked = showAmbossBar
-      updateAmbossBarVisibility()
+    if (msg[0]=='swipeprefs') {
+      if(msg[1]=='X') {
+        $('#swipeSettingsModal').modal('show')
+      } else {
+        var split = msg[1].split(',')
+        swipeRightAction=parseInt(split[0])
+        swipeLeftAction=parseInt(split[1])
+        swipeUpAction=parseInt(split[2])
+        swipeDownAction=parseInt(split[3])
+        longPressAction=parseInt(split[4])
+        doubleTapAction=parseInt(split[5])
+        showAmbossBar=(split[6]=='true')
+        swipeRightSelect.selectedIndex = swipeRightAction
+        swipeLeftSelect.selectedIndex = swipeLeftAction
+        swipeUpSelect.selectedIndex = swipeUpAction
+        swipeDownSelect.selectedIndex = swipeDownAction
+        longPressSelect.selectedIndex = longPressAction
+        doubleTapSelect.selectedIndex = doubleTapAction
+        showAmbossBarCheckbox.checked = showAmbossBar
+        updateAmbossBarVisibility()
+      }
     }
   };
 
-  var recdprefs = false
   if (webSocket.readyState==1) {
     webSocket.send('getprefs-swipeprefs');
     console.log('requested prefs')
-    setTimeout(() => { if(!recdprefs) $('#swipeSettingsModal').modal('show') }, 200);
   } else {
     webSocket.onopen = function(event) {
       webSocket.send('getprefs-swipeprefs');
       console.log('requested prefs')
-      setTimeout(() => { if(!recdprefs) $('#swipeSettingsModal').modal('show') }, 200);
     };
   }
 
@@ -170,9 +220,8 @@ function initSwipes() {
     if(!waitSwipeEnd) {
       waitSwipeEnd = true
       var delay=0
-      if (webSocket.readyState==3) {
-        webSocket = new WebSocket(wslink)
-        setTimeout(() => { attemptConnect() }, 500);
+      if (webSocket.readyState!=1) {
+        createSocket()
         delay=200
       }
       var actionstr=''
@@ -250,9 +299,8 @@ function initSwipes() {
   $('#swipeArea').on('press', function(e) {
     //long Press
     var delay=0
-    if(webSocket.readyState==3) {
-      webSocket = new WebSocket(wslink)
-      setTimeout(() => { attemptConnect() }, 500);
+    if(webSocket.readyState!=1) {
+      createSocket()
       delay=200
     }
     setTimeout(function(){ webSocket.send(dict[longPressAction]); }, delay);
@@ -263,9 +311,8 @@ function initSwipes() {
   $('#swipeArea').on('doubletap', function(e) {
     //doubletap
     var delay=0
-    if(webSocket.readyState==3) {
-      webSocket = new WebSocket(wslink)
-      setTimeout(() => { attemptConnect() }, 500);
+    if(webSocket.readyState!=1) {
+      createSocket()
       delay=200
     }
     setTimeout(function(){ webSocket.send(dict[doubleTapAction]); }, delay);
@@ -323,37 +370,37 @@ function initTaps() {
   webSocket.onmessage = function(event) {
     console.log(event.data)
     var msg = event.data.split('-')
-    if (msg[0]=='tapprefs' && msg[1]!='X') {
-      recdprefs=true
-      var split = msg[1].split(',')
-      leftTapAction=parseInt(split[0])
-      leftSwipeAction=parseInt(split[1])
-      leftLongPressAction=parseInt(split[2])
-      rightTapAction=parseInt(split[3])
-      rightSwipeAction=parseInt(split[4])
-      rightLongPressAction=parseInt(split[5])
-      showAmbossBar=(split[6]=='true')
-      leftTapSelect.value = leftTapAction
-      leftSwipeSelect.value = leftSwipeAction
-      leftLongPressSelect.value = leftLongPressAction
-      rightTapSelect.value = rightTapAction
-      rightSwipeSelect.value = rightSwipeAction
-      rightLongPressSelect.value = rightLongPressAction
-      tapAmbossBarCheckbox.checked = showAmbossBar
-      updateAmbossBarVisibility()
+    if (msg[0]=='tapprefs') {
+      if(msg[1]=='X') {
+        $('#tapSettingsModal').modal('show')
+      } else {
+        var split = msg[1].split(',')
+        leftTapAction=parseInt(split[0])
+        leftSwipeAction=parseInt(split[1])
+        leftLongPressAction=parseInt(split[2])
+        rightTapAction=parseInt(split[3])
+        rightSwipeAction=parseInt(split[4])
+        rightLongPressAction=parseInt(split[5])
+        showAmbossBar=(split[6]=='true')
+        leftTapSelect.value = leftTapAction
+        leftSwipeSelect.value = leftSwipeAction
+        leftLongPressSelect.value = leftLongPressAction
+        rightTapSelect.value = rightTapAction
+        rightSwipeSelect.value = rightSwipeAction
+        rightLongPressSelect.value = rightLongPressAction
+        tapAmbossBarCheckbox.checked = showAmbossBar
+        updateAmbossBarVisibility()
+      }
     }
   };
 
-  var recdprefs = false
   if (webSocket.readyState==1) {
     webSocket.send('getprefs-tapprefs');
     console.log('requested tapprefs')
-    setTimeout(() => { if(!recdprefs) $('#tapSettingsModal').modal('show') }, 200);
   } else {
     webSocket.onopen = function(event) {
       webSocket.send('getprefs-tapprefs');
       console.log('requested tapprefs')
-      setTimeout(() => { if(!recdprefs) $('#tapSettingsModal').modal('show') }, 200);
     };
   }
 
@@ -376,9 +423,8 @@ function initTaps() {
   $('#leftTapArea').on('tap doubletap', function(e) {
     if(leftTapAllowed) {
       var delay=0
-      if (webSocket.readyState==3) {
-        webSocket = new WebSocket(wslink)
-        setTimeout(() => { attemptConnect() }, 500);
+      if (webSocket.readyState!=1) {
+        createSocket()
         delay=200
       }
       setTimeout(function(){ webSocket.send(dict[leftTapAction]); }, delay);
@@ -390,9 +436,8 @@ function initTaps() {
   $('#rightTapArea').on('tap doubletap', function(e) {
     if(rightTapAllowed) {
       var delay=0
-      if (webSocket.readyState==3) {
-        webSocket = new WebSocket(wslink)
-        setTimeout(() => { attemptConnect() }, 500);
+      if (webSocket.readyState!=1) {
+        createSocket()
         delay=200
       }
       setTimeout(function(){ webSocket.send(dict[rightTapAction]); }, delay);
@@ -410,9 +455,8 @@ function initTaps() {
     if(!waitLeftSwipeEnd) {
       waitLeftSwipeEnd=true
       var delay=0
-      if (webSocket.readyState==3) {
-        webSocket = new WebSocket(wslink)
-        setTimeout(() => { attemptConnect() }, 500);
+      if (webSocket.readyState!=1) {
+        createSocket()
         delay=200
       }
       if(leftSwipeAction!=9 && leftSwipeAction!=10) {
@@ -485,9 +529,8 @@ function initTaps() {
     if(!waitRightSwipeEnd) {
       waitRightSwipeEnd=true
       var delay=0
-      if (webSocket.readyState==3) {
-        webSocket = new WebSocket(wslink)
-        setTimeout(() => { attemptConnect() }, 500);
+      if (webSocket.readyState!=1) {
+        createSocket()
         delay=200
       }
       if(rightSwipeAction!=9 && rightSwipeAction!=10) {
@@ -557,9 +600,8 @@ function initTaps() {
   $('#leftTapArea').on('press', function(e) {
     //long Press
     var delay=0
-    if(webSocket.readyState==3) {
-      webSocket = new WebSocket(wslink)
-      setTimeout(() => { attemptConnect() }, 500);
+    if(webSocket.readyState!=1) {
+      createSocket()
       delay=200
     }
     setTimeout(function(){ webSocket.send(dict[leftLongPressAction]); }, delay);
@@ -572,9 +614,8 @@ function initTaps() {
   $('#rightTapArea').on('press', function(e) {
     //long Press
     var delay=0
-    if(webSocket.readyState==3) {
-      webSocket = new WebSocket(wslink)
-      setTimeout(() => { attemptConnect() }, 500);
+    if(webSocket.readyState!=1) {
+      createSocket()
       delay=200
     }
     setTimeout(function(){ webSocket.send(dict[rightLongPressAction]); }, delay);
@@ -590,9 +631,8 @@ function initTaps() {
 
 function amboss(a) {
   var delay=0
-  if(webSocket.readyState==3) {
-    webSocket = new WebSocket(wslink)
-    setTimeout(() => { attemptConnect() }, 500);
+  if(webSocket.readyState!=1) {
+    createSocket()
     delay=200
   }
   var command="none"
