@@ -693,13 +693,13 @@ fixDimensions();
 function handleFullscreenChange() {
   if (document.fullscreenElement) {
       document.getElementById('container').style.marginTop="10px";
-      document.getElementById("fullscreenIcon").innerHTML="fullscreen_exit"
+      if(document.getElementById("fullscreenIcon")) document.getElementById("fullscreenIcon").innerHTML="fullscreen_exit"
   } else if (document.webkitFullscreenElement) {
       document.getElementById('container').style.marginTop="10px";
-      document.getElementById("fullscreenIcon").innerHTML="fullscreen_exit"
+      if(document.getElementById("fullscreenIcon")) document.getElementById("fullscreenIcon").innerHTML="fullscreen_exit"
   } else {
       document.getElementById('container').style.marginTop="0px";
-      document.getElementById("fullscreenIcon").innerHTML="fullscreen"
+      if(document.getElementById("fullscreenIcon")) document.getElementById("fullscreenIcon").innerHTML="fullscreen"
   }
 }
 
