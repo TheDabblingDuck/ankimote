@@ -17,14 +17,15 @@ var dict = {
 };
 
 function changeMode(newMode) {
-  webSocket.send('setprefs-currentmode-'+newMode)
   if (newMode == "swipes") {
+    webSocket.send('setprefs-currentmode-'+newMode)
     $("#container").load("swipes.html #container", function() {
       generalInit();
       initSwipes();
     });
   }
   else if (newMode == "taps") {
+    webSocket.send('setprefs-currentmode-'+newMode)
     $("#container").load("taps.html #container", function() {
       generalInit();
       initTaps();
@@ -90,13 +91,16 @@ document.addEventListener("visibilitychange", handleVisibilityChange, false);
 
 function generalInit() {
 
-  document.getElementById('gigaDiv').addEventListener('touchmove', function(e) {
-      e.preventDefault();
-  }, { passive: false });
-
   if(!document.webkitFullscreenEnabled) {
     $('#goFullscreenButton').remove()
   }
+
+  fixDimensions()
+  handleFullscreenChange()
+
+  document.getElementById('gigaDiv').addEventListener('touchmove', function(e) {
+      e.preventDefault();
+  }, { passive: false });
 
 }
 
@@ -105,6 +109,9 @@ function initSwitchdeck() {
   if(!document.webkitFullscreenEnabled) {
     $('#goFullscreenButton').remove()
   }
+
+  fixDimensions()
+  handleFullscreenChange()
 
   var listGroup = document.getElementById('listGroup')
 
@@ -123,6 +130,19 @@ function initSwitchdeck() {
       $('#listGroup li').on('click', function (e) {
         e.preventDefault()
         webSocket.send('setdeck~#$#~'+$(this)[0].innerHTML)
+        webSocket.onmessage = function(event) {
+          console.log(event.data)
+          var msg = event.data.split('-')
+          if (msg[0]=='currentmode') {
+            choosingMode=false
+            if (msg[1]=='X') {
+              changeMode('swipes')
+            } else {
+              changeMode(msg[1])
+            }
+          }
+        }
+        webSocket.send('getprefs-currentmode')
       })
     }
   }
@@ -157,7 +177,6 @@ function initSwipes() {
   var longPressSelect = document.getElementById("longPressSelect");
   var doubleTapSelect = document.getElementById("doubleTapSelect")
   var showAmbossBarCheckbox = document.getElementById("ambossBarCheckbox");
-  ambossBar = document.getElementById('ambossBar')
 
   var swipeRightAction=0;
   var swipeLeftAction=0;
@@ -356,7 +375,6 @@ function initTaps() {
   var rightSwipeSelect = document.getElementById("rightSwipeSelect");
   var rightLongPressSelect = document.getElementById("rightLongPressSelect")
   var tapAmbossBarCheckbox = document.getElementById("tapAmbossBarCheckbox");
-  ambossBar = document.getElementById('ambossBar')
 
   var leftTapAction=0;
   var leftSwipeAction=0;
@@ -643,6 +661,21 @@ function amboss(a) {
 }
 
 function fixDimensions() {
+  if(document.getElementById('ambossBarHoriz')) {
+    if(window.innerHeight>window.innerWidth) {
+      document.getElementById('ambossBar').style.display = "none"
+      document.getElementById('ambossBarHoriz').style.display = "flex"
+      ambossBar=document.getElementById('ambossBarHoriz')
+    } else {
+      document.getElementById('ambossBar').style.display = "flex"
+      document.getElementById('ambossBarHoriz').style.display = "none"
+      ambossBar=document.getElementById('ambossBar')
+    }
+    updateAmbossBarVisibility()
+  } else if (document.getElementById('ambossBar')) {
+    ambossBar=document.getElementById('ambossBar')
+  }
+
   if (window.matchMedia('(display-mode: standalone)').matches) {
     var matches = "true"
     var newHeight = document.documentElement.clientHeight
@@ -650,7 +683,6 @@ function fixDimensions() {
     var matches = "false"
     var newHeight = window.innerHeight
   }
-  //alert("innerHeight: " + window.innerHeight + "\ninnerWidth: " + window.innerWidth + "\norientation: " + window.orientation + "\nscreenheight: " + screen.height + "\nscreenwidth" + screen.width + "\nscreenavailheight" + screen.availHeight + "\nscreenavailwidth"+ screen.availWidth+ "\nclientheight" + document.documentElement.clientHeight + "\nclientwidth"+ document.documentElement.clientWidth+ "\nstandalone: "+matches)
 
   document.body.style.height=newHeight.toString()+'px';
   window.scroll(0,0);
@@ -658,25 +690,38 @@ function fixDimensions() {
 window.addEventListener('resize', fixDimensions);
 fixDimensions();
 
+function handleFullscreenChange() {
+  if (document.fullscreenElement) {
+      document.getElementById('container').style.marginTop="10px";
+      document.getElementById("fullscreenIcon").innerHTML="fullscreen_exit"
+  } else if (document.webkitFullscreenElement) {
+      document.getElementById('container').style.marginTop="10px";
+      document.getElementById("fullscreenIcon").innerHTML="fullscreen_exit"
+  } else {
+      document.getElementById('container').style.marginTop="0px";
+      document.getElementById("fullscreenIcon").innerHTML="fullscreen"
+  }
+}
+
+document.onfullscreenchange = function ( event ) {
+    handleFullscreenChange()
+};
+
 function goFullscreen() {
   if(document.documentElement.requestFullscreen) {
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen();
-        document.getElementById('topMenuDiv').style.marginTop="20px";
     } else {
       if (document.exitFullscreen) {
         document.exitFullscreen();
-        document.getElementById('topMenuDiv').style.marginTop="10px";
       }
     }
   } else if(document.documentElement.webkitRequestFullscreen) {
     if (!document.webkitFullscreenElement) {
         document.documentElement.webkitRequestFullscreen();
-        document.getElementById('topMenuDiv').style.marginTop="20px";
     } else {
       if (document.webkitExitFullscreen) {
         document.webkitExitFullscreen();
-        document.getElementById('topMenuDiv').style.marginTop="10px";
       }
     }
   }
