@@ -13,7 +13,31 @@ var dict = {
   5: "undo",
   6: "scrollup",
   7: "scrolldown",
-  8: "showhints"
+  8: "showhints",
+  21: "js1",
+  22: "js2",
+  23: "js3",
+  31: "hook1",
+  32: "hook2",
+  33: "hook3"
+};
+
+var names = {
+  0: "none",
+  1: "Good",
+  2: "Again",
+  3: "Easy",
+  4: "Hard",
+  5: "Unfo",
+  6: "▲",
+  7: "▼",
+  8: "Hints",
+  21: "JS 1",
+  22: "JS 2",
+  23: "JS 3",
+  31: "Hook 1",
+  32: "Hook 2",
+  33: "Hook 3"
 };
 
 function changeMode(newMode) {
@@ -96,6 +120,7 @@ function generalInit() {
   }
 
   fixDimensions()
+  setTimeout(function(){ fixDimensions(); }, 100);
   handleFullscreenChange()
 
   document.getElementById('gigaDiv').addEventListener('touchmove', function(e) {
@@ -162,7 +187,38 @@ function updateAmbossBarVisibility() {
   }
 }
 
+var action1Action=0;
+var action2Action=0;
+var action3Action=0;
+var action4Action=0;
+
 function initSwipes() {
+
+  var actionBar = document.getElementById("actionBar")
+  var action1 = document.getElementById("action1")
+  var action2 = document.getElementById("action2")
+  var action3 = document.getElementById("action3")
+  var action4 = document.getElementById("action4")
+  function updateActionBarVisibility() {
+    if(action1Action+action2Action+action3Action+action4Action==0) {
+      actionBar.style.display = 'none'
+    } else {
+
+      actionBar.style.display = 'inline-flex'
+
+      for(i=1;i<5;i++) {
+        var actioniAction = eval("action"+i+"Action")
+        var actioni = eval("action"+i)
+        if(actioniAction==0) {
+          actioni.style.display = 'none'
+        } else {
+          actioni.style.display = 'inline-block'
+          actioni.innerText = names[actioniAction]
+        }
+      }
+
+    }
+  }
 
   var waitSwipeEnd = false
   var lastX = -1
@@ -176,6 +232,10 @@ function initSwipes() {
   var swipeDownSelect = document.getElementById("swipeDownSelect");
   var longPressSelect = document.getElementById("longPressSelect");
   var doubleTapSelect = document.getElementById("doubleTapSelect")
+  var action1Select = document.getElementById("action1Select")
+  var action2Select = document.getElementById("action2Select")
+  var action3Select = document.getElementById("action3Select")
+  var action4Select = document.getElementById("action4Select")
   var showAmbossBarCheckbox = document.getElementById("ambossBarCheckbox");
 
   var swipeRightAction=0;
@@ -200,14 +260,24 @@ function initSwipes() {
         longPressAction=parseInt(split[4])
         doubleTapAction=parseInt(split[5])
         showAmbossBar=(split[6]=='true')
-        swipeRightSelect.selectedIndex = swipeRightAction
-        swipeLeftSelect.selectedIndex = swipeLeftAction
-        swipeUpSelect.selectedIndex = swipeUpAction
-        swipeDownSelect.selectedIndex = swipeDownAction
-        longPressSelect.selectedIndex = longPressAction
-        doubleTapSelect.selectedIndex = doubleTapAction
+        action1Action=parseInt(split[7])
+        action2Action=parseInt(split[8])
+        action3Action=parseInt(split[9])
+        action4Action=parseInt(split[10])
+        swipeRightSelect.value = swipeRightAction
+        swipeLeftSelect.value = swipeLeftAction
+        swipeUpSelect.value = swipeUpAction
+        swipeDownSelect.value = swipeDownAction
+        longPressSelect.value = longPressAction
+        doubleTapSelect.value = doubleTapAction
         showAmbossBarCheckbox.checked = showAmbossBar
+        action1Select.value = action1Action
+        action2Select.value = action2Action
+        action3Select.value = action3Action
+        action4Select.value = action4Action
+
         updateAmbossBarVisibility()
+        updateActionBarVisibility()
       }
     }
   };
@@ -223,15 +293,20 @@ function initSwipes() {
   }
 
   $('#swipeSettingsModal').on('hidden.bs.modal', function (e) {
-    swipeRightAction=swipeRightSelect.selectedIndex
-    swipeLeftAction=swipeLeftSelect.selectedIndex
-    swipeUpAction=swipeUpSelect.selectedIndex
-    swipeDownAction=swipeDownSelect.selectedIndex
-    longPressAction=longPressSelect.selectedIndex
-    doubleTapAction=doubleTapSelect.selectedIndex
+    swipeRightAction=swipeRightSelect.value
+    swipeLeftAction=swipeLeftSelect.value
+    swipeUpAction=swipeUpSelect.value
+    swipeDownAction=swipeDownSelect.value
+    longPressAction=longPressSelect.value
+    doubleTapAction=doubleTapSelect.value
     showAmbossBar=showAmbossBarCheckbox.checked
+    action1Action=action1Select.value
+    action2Action=action2Select.value
+    action3Action=action3Select.value
+    action4Action=action4Select.value
     updateAmbossBarVisibility()
-    var save = 'setprefs-swipeprefs-'+ swipeRightAction+','+ swipeLeftAction+','+ swipeUpAction+','+ swipeDownAction+','+ longPressAction+','+ doubleTapAction+','+ showAmbossBar
+    updateActionBarVisibility()
+    var save = 'setprefs-swipeprefs-'+ swipeRightAction+','+ swipeLeftAction+','+ swipeUpAction+','+ swipeDownAction+','+ longPressAction+','+ doubleTapAction+','+ showAmbossBar+','+ action1Action+','+ action2Action+','+ action3Action+','+ action4Action
     webSocket.send(save)
   })
 
@@ -375,6 +450,10 @@ function initTaps() {
   var rightSwipeSelect = document.getElementById("rightSwipeSelect");
   var rightLongPressSelect = document.getElementById("rightLongPressSelect")
   var tapAmbossBarCheckbox = document.getElementById("tapAmbossBarCheckbox");
+  var leftSwipeLeftSelect = document.getElementById("leftSwipeLeftSelect");
+  var leftSwipeRightSelect = document.getElementById("leftSwipeRightSelect");
+  var rightSwipeLeftSelect = document.getElementById("rightSwipeLeftSelect");
+  var rightSwipeRightSelect = document.getElementById("rightSwipeRightSelect");
 
   var leftTapAction=0;
   var leftSwipeAction=0;
@@ -382,6 +461,10 @@ function initTaps() {
   var rightTapAction=0
   var rightSwipeAction=0;
   var rightLongPressAction=0;
+  var leftSwipeLeftAction=0;
+  var leftSwipeRightAction=0;
+  var rightSwipeLeftAction=0;
+  var rightSwipeRightAction=0;
 
   // handle requesting settings and modal
 
@@ -400,6 +483,10 @@ function initTaps() {
         rightSwipeAction=parseInt(split[4])
         rightLongPressAction=parseInt(split[5])
         showAmbossBar=(split[6]=='true')
+        leftSwipeLeftAction=parseInt(split[7])
+        leftSwipeRightAction=parseInt(split[8])
+        rightSwipeLeftAction=parseInt(split[9])
+        rightSwipeRightAction=parseInt(split[10])
         leftTapSelect.value = leftTapAction
         leftSwipeSelect.value = leftSwipeAction
         leftLongPressSelect.value = leftLongPressAction
@@ -407,6 +494,10 @@ function initTaps() {
         rightSwipeSelect.value = rightSwipeAction
         rightLongPressSelect.value = rightLongPressAction
         tapAmbossBarCheckbox.checked = showAmbossBar
+        leftSwipeLeftSelect.value = leftSwipeLeftAction
+        leftSwipeRightSelect.value = leftSwipeRightAction
+        rightSwipeLeftSelect.value = rightSwipeLeftAction
+        rightSwipeRightSelect.value = rightSwipeRightAction
         updateAmbossBarVisibility()
       }
     }
@@ -430,8 +521,12 @@ function initTaps() {
     rightSwipeAction=rightSwipeSelect.value
     rightLongPressAction=rightLongPressSelect.value
     showAmbossBar=tapAmbossBarCheckbox.checked
+    leftSwipeLeftAction=leftSwipeLeftSelect.value
+    leftSwipeRightAction=leftSwipeRightSelect.value
+    rightSwipeLeftAction=rightSwipeLeftSelect.value
+    rightSwipeRightAction=rightSwipeRightSelect.value
     updateAmbossBarVisibility()
-    var save = 'setprefs-tapprefs-'+ leftTapAction+','+ leftSwipeAction+','+ leftLongPressAction+','+ rightTapAction+','+ rightSwipeAction+','+ rightLongPressAction+','+ showAmbossBar
+    var save = 'setprefs-tapprefs-'+ leftTapAction+','+ leftSwipeAction+','+ leftLongPressAction+','+ rightTapAction+','+ rightSwipeAction+','+ rightLongPressAction+','+ showAmbossBar+','+ leftSwipeLeftAction+','+ leftSwipeRightAction+','+ rightSwipeLeftAction+','+ rightSwipeRightAction
     webSocket.send(save)
   })
 
@@ -477,10 +572,11 @@ function initTaps() {
         createSocket()
         delay=200
       }
-      if(leftSwipeAction!=9 && leftSwipeAction!=10) {
-        setTimeout(function(){ webSocket.send(dict[leftSwipeAction]); }, delay);
-      } else {
-        if(e.orientation=='vertical') {
+      if(e.orientation=='vertical') {
+        //vertical swipe
+        if(leftSwipeAction!=9 && leftSwipeAction!=10) {
+          setTimeout(function(){ webSocket.send(dict[leftSwipeAction]); }, delay);
+        } else {
           var actionstr=''
           if(e.direction==1) {
             // swipe Down
@@ -517,6 +613,22 @@ function initTaps() {
           }
           if(actionstr!='none') setTimeout(function(){ webSocket.send(actionstr); }, delay);
         }
+      } else {
+        //horizontal swipe
+        var actionstr=''
+        if(e.direction==1) {
+          // swipe Right
+          actionstr=dict[leftSwipeRightAction]
+        } else {
+          // swipe left
+          actionstr=dict[leftSwipeLeftAction]
+        }
+        if(actionstr=='scrolldown') {
+          actionstr='pagedown'
+        } else if(actionstr=='scrollup') {
+          actionstr='pageup'
+        }
+        if(actionstr!='none') setTimeout(function(){ webSocket.send(actionstr); }, delay);
       }
     }
     e.preventDefault();
@@ -551,10 +663,10 @@ function initTaps() {
         createSocket()
         delay=200
       }
-      if(rightSwipeAction!=9 && rightSwipeAction!=10) {
-        setTimeout(function(){ webSocket.send(dict[rightSwipeAction]); }, delay);
-      } else {
-        if(e.orientation=='vertical') {
+      if(e.orientation=='vertical') {
+        if(rightSwipeAction!=9 && rightSwipeAction!=10) {
+          setTimeout(function(){ webSocket.send(dict[rightSwipeAction]); }, delay);
+        } else {
           var actionstr=''
           if(e.direction==1) {
             // swipe Down
@@ -591,6 +703,22 @@ function initTaps() {
           }
           if(actionstr!='none') setTimeout(function(){ webSocket.send(actionstr); }, delay);
         }
+      } else {
+        //horizontal swipe
+        var actionstr=''
+        if(e.direction==1) {
+          // swipe Right
+          actionstr=dict[rightSwipeRightAction]
+        } else {
+          // swipe left
+          actionstr=dict[rightSwipeLeftAction]
+        }
+        if(actionstr=='scrolldown') {
+          actionstr='pagedown'
+        } else if(actionstr=='scrollup') {
+          actionstr='pageup'
+        }
+        if(actionstr!='none') setTimeout(function(){ webSocket.send(actionstr); }, delay);
       }
     }
     e.preventDefault();
@@ -660,6 +788,21 @@ function amboss(a) {
   setTimeout(function(){ webSocket.send(command); }, delay);
 }
 
+function onActionBarClicked(i) {
+  var delay=0
+  if(webSocket.readyState!=1) {
+    createSocket()
+    delay=200
+  }
+  var actionstr = dict[eval("action"+i+"Action")]
+  if(actionstr=='scrolldown') {
+    actionstr='pagedown'
+  } else if(actionstr=='scrollup') {
+    actionstr='pageup'
+  }
+  setTimeout(function(){ webSocket.send(actionstr); }, delay);
+}
+
 function fixDimensions() {
   if(document.getElementById('ambossBarHoriz')) {
     if(window.innerHeight>window.innerWidth) {
@@ -677,10 +820,8 @@ function fixDimensions() {
   }
 
   if (window.matchMedia('(display-mode: standalone)').matches) {
-    var matches = "true"
     var newHeight = document.documentElement.clientHeight
   } else {
-    var matches = "false"
     var newHeight = window.innerHeight
   }
 
@@ -688,7 +829,6 @@ function fixDimensions() {
   window.scroll(0,0);
 }
 window.addEventListener('resize', fixDimensions);
-fixDimensions();
 
 function handleFullscreenChange() {
   if (document.fullscreenElement) {

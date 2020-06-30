@@ -19,6 +19,7 @@ from aqt.utils import showInfo
 from aqt.qt import *
 from aqt.webview import AnkiWebView, QWebEngineView
 from aqt import gui_hooks
+from anki.hooks import runHook
 
 import json
 
@@ -151,7 +152,7 @@ gui_hooks.profile_will_close.append(onAnkiClose)
 def handleMessage(msg):
     global caffeinated, caffprocess, cafftimer
 
-    # print('Recd: '+msg)
+    print('Recd: '+msg)
 
     if msg=="connected" or msg=="disconnected":
         mw.toolbar.draw()
@@ -181,6 +182,19 @@ def handleMessage(msg):
             split = msg.split('~#$#~')
             mw.col.decks.select(mw.col.decks.id(split[1]))
             mw.moveToState("review")
+        elif msg.startswith('hook'):
+            for i in range(1,4):
+                if msg.endswith(str(i)):
+                    hookname = 'Ankimote.hook'+str(i)
+                    print('runHook('+hookname+')')
+                    runHook(hookname)
+        elif msg.startswith('js'):
+            config = mw.addonManager.getConfig(__name__)
+            for i in range(1,4):
+                if msg.endswith(str(i)):
+                    jsval = config[('js'+str(i))]
+                    print('running JS'+str(i)+': '+jsval)
+                    mw.web.eval(jsval)
         elif mw.state=='review' and msg!='none':
             if msg=='good' and mw.reviewer.state=='question':
                 mw.reviewer._showAnswer()
@@ -213,10 +227,50 @@ def handleMessage(msg):
                 };
                 '''
                 mw.web.eval(showHintsJS)
-            elif mw.reviewer.card:
+            elif mw.reviewer.card and mw.reviewer.state=='answer':
                 for ease, label in mw.reviewer._answerButtonList():
                     if msg==label.lower():
                         mw.reviewer._answerCard(ease)
+                        colordict = {
+                            "again": "#ec1d24",
+                            "hard": "#ecb51d",
+                            "good": "#5BAE7E",
+                            "easy": "#4BA2CB"
+                        }
+                        feedbackJSp1 = """
+                        if(document.getElementById('snackbar')) {
+                        var snackbar = document.getElementById('snackbar');
+                        snackbar.parentNode.removeChild(snackbar)
+                        }
+                        var sheet = window.document.styleSheets[0];
+                        sheet.insertRule('#snackbar {  visibility: hidden;   min-width: 250px;  margin-left: -125px;  background-color: """
+                        feedbackJSp2 = """;  color: #fff;  text-align: center;  border-radius: 48px;  padding: 8px;  position: fixed;  z-index: 1;  left: 50%;  bottom: 30px;  font-size: 24px; font-weight: bold; }', sheet.cssRules.length);
+                        sheet.insertRule('#snackbar.show {  visibility: visible;  -webkit-animation: fadein 0.05s, fadeout 0.25s 0.75s;  animation: fadein 0.05s, fadeout 0.25s 0.75s;}', sheet.cssRules.length);
+                        sheet.insertRule('@-webkit-keyframes fadein {  from {bottom: 0; opacity: 0;}   to {bottom: 30px; opacity: 1;}}', sheet.cssRules.length);
+                        sheet.insertRule('@keyframes fadein {  from {bottom: 0; opacity: 0;}  to {bottom: 30px; opacity: 1;}}', sheet.cssRules.length);
+                        sheet.insertRule('@-webkit-keyframes fadeout {  from {bottom: 30px; opacity: 1;}   to {bottom: 0; opacity: 0;}}', sheet.cssRules.length);
+                        sheet.insertRule('@keyframes fadeout {  from {bottom: 30px; opacity: 1;}  to {bottom: 0; opacity: 0;}}', sheet.cssRules.length);
+
+                        var mytoast = document.createElement("div");
+                        mytoast.innerHTML = '"""
+                        feedbackJSp3 = """'
+                        mytoast.id="snackbar"
+                        document.body.appendChild(mytoast)
+                        var toastelement = document.getElementById("snackbar");
+                        toastelement.className = "show";
+                        setTimeout(function(){
+                        toastelement.className = toastelement.className.replace("show", "");
+                        for(i = 0;i<6;i++) {
+		                sheet.deleteRule(sheet.cssRules.length-1)
+                        }
+                        toastelement.parentNode.removeChild(toastelement);
+                        }, 1000);
+                        """
+                        feedbackJS = feedbackJSp1 + colordict[msg] + feedbackJSp2 + label + feedbackJSp3
+                        config = mw.addonManager.getConfig(__name__)
+                        if config['feedback']==True:
+                            mw.web.eval(feedbackJS)
+
 
 mw.ankimote.handleMessage = handleMessage
 
@@ -271,7 +325,7 @@ def handleUnblurMessage(handled, message, context):
 gui_hooks.webview_did_receive_js_message.append(handleUnblurMessage)
 
 # create a new menu item, "test"
-action = QAction("Remote", mw)
+action = QAction("Ankimote", mw)
 # set it to call testFunction when it's clicked
 action.triggered.connect(runRemote)
 action.setShortcut(QKeySequence("Ctrl+Shift+R"))
@@ -284,7 +338,7 @@ def addlink(links, toolbar):
     if hasattr(mw.ankimote,'wssThread'):
         if hasattr(mw.ankimote.wssThread,'server'):
             hasConnection = (len(mw.ankimote.wssThread.server.connections)>0)
-    text = "Remote " + ("✔" if hasConnection else "✘")
+    text = "Ankimote " + ("✔" if hasConnection else "✘")
     toolbaritem = toolbar.create_link("ankimote-toolbaritem",text,runRemote,"Shortcut: Ctrl+Shift+R")
     links.insert(len(links)-1,toolbaritem)
 

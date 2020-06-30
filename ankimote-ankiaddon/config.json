@@ -1,0 +1,6 @@
+{
+  "feedback": true,
+  "js1": "alert('JS1: replace with custom code in the Anki addon config page');",
+  "js2": "alert('JS2: replace with custom code in the Anki addon config page');",
+  "js3": "alert('JS3: replace with custom code in the Anki addon config page');"
+}
