@@ -25,6 +25,15 @@ For developers:
 * Custom hook support for integration with other addons
 
 
+## Limitations
+
+* Both devices must be on the same network (usually the same WiFi name)
+
+* The network must allow local communication (public networks like coffee shops and some schools may not work)
+
+* Workaround: when the above conditions cannot be met, try enabling Bluetooth tethering on your phone and connect your computer to your phone's Bluetooth. In your computer's Bluetooth settings, use "connect to network" or similar to create an internet connection over Bluetooth between the two devices. Then find your phone's IP address on the Bluetooth connection, and use that IP address instead of the one Ankimote displays. Use the same port displayed by Ankimote. 
+
+
 ## Screenshots
 
 Connect by scanning a QR or visiting the URL from a phone or other device that is on the same local network.
