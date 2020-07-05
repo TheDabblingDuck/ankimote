@@ -48,3 +48,8 @@ Swipe mode and swipe settings
 
 Tap mode (best in landscape)
 <img src="screenshots/tapmode.png" width="90%" >
+
+
+## Privacy
+
+Ankimote uses Google Analytics to count users.
