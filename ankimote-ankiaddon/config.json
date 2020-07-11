@@ -1,6 +1,13 @@
 {
   "feedback": true,
-  "js1": "alert('JS1: replace with custom code in the Anki addon config page');",
-  "js2": "alert('JS2: replace with custom code in the Anki addon config page');",
-  "js3": "alert('JS3: replace with custom code in the Anki addon config page');"
+  "cmd1-label": "Suspend Card",
+  "cmd1": "mw.reviewer.onSuspendCard()",
+  "cmd2-label": "CMD 2",
+  "cmd2": "showInfo('CMD 2: replace with custom code in the Anki addon config page')",
+  "cmd3-label": "CMD 3",
+  "cmd3": "showInfo('CMD 3: replace with custom code in the Anki addon config page')",
+  "cmd4-label": "CMD 4",
+  "cmd4": "showInfo('CMD 4: replace with custom code in the Anki addon config page')",
+  "cmd5-label": "CMD 5",
+  "cmd5": "mw.web.eval( \"alert('CMD 5: replace with custom code in the Anki addon config page');\" )"
 }

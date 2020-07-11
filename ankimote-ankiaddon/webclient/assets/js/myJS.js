@@ -14,9 +14,11 @@ var dict = {
   6: "scrollup",
   7: "scrolldown",
   8: "showhints",
-  21: "js1",
-  22: "js2",
-  23: "js3",
+  21: "cmd1",
+  22: "cmd2",
+  23: "cmd3",
+  24: "cmd4",
+  25: "cmd5",
   31: "hook1",
   32: "hook2",
   33: "hook3"
@@ -32,9 +34,11 @@ var names = {
   6: "▲",
   7: "▼",
   8: "Hints",
-  21: "JS 1",
-  22: "JS 2",
-  23: "JS 3",
+  21: "CMD 1",
+  22: "CMD 2",
+  23: "CMD 3",
+  24: "CMD 4",
+  25: "CMD 5",
   31: "Hook 1",
   32: "Hook 2",
   33: "Hook 3"
@@ -54,9 +58,6 @@ function changeMode(newMode) {
       generalInit();
       initTaps();
     });
-  }
-  else if (newMode == "gestures") {
-
   }
   else if (newMode == "switchdeck") {
     $("#container").load("switchdeck.html #container", function() {
@@ -120,7 +121,7 @@ function generalInit() {
   }
 
   fixDimensions()
-  setTimeout(function(){ fixDimensions(); }, 100);
+  setTimeout(function(){ fixDimensions(); }, 250);
   handleFullscreenChange()
 
   document.getElementById('gigaDiv').addEventListener('touchmove', function(e) {
@@ -192,6 +193,33 @@ var action2Action=0;
 var action3Action=0;
 var action4Action=0;
 
+function refreshCmdLabels(selectArray, callback) {
+  webSocket.onmessage = function(event) {
+    console.log(event.data)
+    var msg = event.data.split('~#$#~')
+    if (msg[0]=='cmdlabels') {
+      for(cmdnum=1;cmdnum<6;cmdnum++) {
+        names[20+cmdnum] = msg[cmdnum]
+      }
+      for(selectIndex=0;selectIndex<selectArray.length;selectIndex++){
+        var thisSelect = selectArray[selectIndex];
+        for(optionsIndex=0;optionsIndex<thisSelect.options.length;optionsIndex++){
+          var thisOption = thisSelect.options[optionsIndex];
+          for(cmdnum=1;cmdnum<6;cmdnum++) {
+            var cmdnumstr = "2" + cmdnum.toString();
+            if(thisOption.value == cmdnumstr) {
+              thisOption.text = msg[cmdnum];
+            }
+          }
+        }
+      }
+    }
+    callback();
+  };
+  webSocket.send('getcmdlabels');
+  console.log('requested cmdlabels');
+}
+
 function initSwipes() {
 
   var actionBar = document.getElementById("actionBar")
@@ -245,6 +273,12 @@ function initSwipes() {
   var longPressAction=0;
   var doubleTapAction=0;
 
+  var swipeSelectArray = [swipeRightSelect, swipeLeftSelect, swipeUpSelect, swipeDownSelect, longPressSelect, doubleTapSelect, action1Select, action2Select, action3Select, action4Select]
+
+  $('#swipeSettingsModal').on('show.bs.modal', function (e) {
+    refreshCmdLabels(swipeSelectArray, updateActionBarVisibility)
+  });
+
   webSocket.onmessage = function(event) {
     console.log(event.data)
     var msg = event.data.split('-')
@@ -277,7 +311,7 @@ function initSwipes() {
         action4Select.value = action4Action
 
         updateAmbossBarVisibility()
-        updateActionBarVisibility()
+        refreshCmdLabels(swipeSelectArray, updateActionBarVisibility)
       }
     }
   };
@@ -466,6 +500,14 @@ function initTaps() {
   var rightSwipeLeftAction=0;
   var rightSwipeRightAction=0;
 
+  // handle custom action labels
+
+  var tapSelectArray = [leftTapSelect, leftSwipeSelect, leftLongPressSelect, rightTapSelect, rightSwipeSelect, rightLongPressSelect, leftSwipeLeftSelect, leftSwipeRightSelect, rightSwipeLeftSelect, rightSwipeRightSelect];
+
+  $('#tapSettingsModal').on('show.bs.modal', function (e) {
+    refreshCmdLabels(tapSelectArray, function () {})
+  });
+
   // handle requesting settings and modal
 
   webSocket.onmessage = function(event) {
@@ -499,6 +541,7 @@ function initTaps() {
         rightSwipeLeftSelect.value = rightSwipeLeftAction
         rightSwipeRightSelect.value = rightSwipeRightAction
         updateAmbossBarVisibility()
+        refreshCmdLabels(tapSelectArray, function () {})
       }
     }
   };

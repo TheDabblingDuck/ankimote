@@ -18,9 +18,9 @@ After installing this addon, selecting 'Ankimote' from the Anki toolbar will sta
 
 * 'Show Hints' action reveals hidden portions of cards in common decks such as Anking and Pepper
 
-For developers:
+Advanced features (see addon config in Anki):
 
-* Custom JavaScript support for deeper interactions with cards
+* Custom actions to trigger execution of user-defined Python code (to interact with Anki) or Javascript (to interact with the current card)
 
 * Custom hook support for integration with other addons
 
@@ -31,7 +31,7 @@ For developers:
 
 * The network must allow local communication (public networks like coffee shops and some schools may not work)
 
-* Workaround: when the above conditions cannot be met, try enabling Bluetooth tethering on your phone and connect your computer to your phone's Bluetooth. In your computer's Bluetooth settings, use "connect to network" or similar to create an internet connection over Bluetooth between the two devices. Then find your phone's IP address on the Bluetooth connection, and use that IP address instead of the one Ankimote displays. Use the same port displayed by Ankimote. 
+* Workaround: when the above conditions cannot be met, try enabling Bluetooth tethering on your phone and connect your computer to your phone's Bluetooth. In your computer's Bluetooth settings, use "connect to network" or similar to create an internet connection over Bluetooth between the two devices. Then find your phone's IP address on the Bluetooth connection, and use that IP address instead of the one Ankimote displays. Use the same port displayed by Ankimote.
 
 
 ## Screenshots

@@ -54,6 +54,12 @@ class SimpleAnki(WebSocket):
         elif msg=='getdecklist':
             decklist = sorted(mw.col.decks.allNames())
             self.send_message('decklist~#$#~'+json.dumps(decklist))
+        elif msg=='getcmdlabels':
+            build = "cmdlabels"
+            config = mw.addonManager.getConfig(__name__)
+            for i in range(1,6):
+                build = build + "~#$#~" + config['cmd'+str(i)+'-label']
+            self.send_message(build)
         else:
             mw.ankimote.wssThread.msgHandler.emit(msg)
 
@@ -188,13 +194,13 @@ def handleMessage(msg):
                     hookname = 'Ankimote.hook'+str(i)
                     print('runHook('+hookname+')')
                     runHook(hookname)
-        elif msg.startswith('js'):
+        elif msg.startswith('cmd'):
             config = mw.addonManager.getConfig(__name__)
-            for i in range(1,4):
+            for i in range(1,6):
                 if msg.endswith(str(i)):
-                    jsval = config[('js'+str(i))]
-                    print('running JS'+str(i)+': '+jsval)
-                    mw.web.eval(jsval)
+                    cmdval = config[('cmd'+str(i))]
+                    print('running CMD'+str(i)+': '+cmdval)
+                    exec(cmdval)
         elif mw.state=='review' and msg!='none':
             if msg=='good' and mw.reviewer.state=='question':
                 mw.reviewer._showAnswer()
