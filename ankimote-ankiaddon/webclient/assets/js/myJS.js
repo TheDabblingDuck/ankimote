@@ -47,20 +47,20 @@ var names = {
 function changeMode(newMode) {
   if (newMode == "swipes") {
     webSocket.send('setprefs-currentmode-'+newMode)
-    $("#container").load("swipes.html #container", function() {
+    $("#container").load("swipes.html?v=2 #container", function() {
       generalInit();
       initSwipes();
     });
   }
   else if (newMode == "taps") {
     webSocket.send('setprefs-currentmode-'+newMode)
-    $("#container").load("taps.html #container", function() {
+    $("#container").load("taps.html?v=2 #container", function() {
       generalInit();
       initTaps();
     });
   }
   else if (newMode == "switchdeck") {
-    $("#container").load("switchdeck.html #container", function() {
+    $("#container").load("switchdeck.html?v=2 #container", function() {
       initSwitchdeck()
     });
   }
