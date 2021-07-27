@@ -23,6 +23,9 @@ from anki.hooks import runHook
 
 import json
 
+import requests, uuid, random
+from os import path
+
 import http.server
 import socketserver
 from pathlib import Path
@@ -36,6 +39,18 @@ caffeinated=False
 caffprocess=None
 cafftimer=None
 qrvisible=False
+
+#handle uuid for analytics
+myuuid=''
+uuidpath = USERFILES+'/uuid'
+if path.exists(uuidpath):
+    with open(uuidpath, 'r') as reader:
+        uuidcontent = reader.readline()
+        myuuid = uuidcontent
+else:
+    myuuid = str(uuid.uuid4())
+    with open(uuidpath, 'w') as writer:
+        writer.write(myuuid)
 
 class SimpleAnki(WebSocket):
     def handle(self):
@@ -120,25 +135,25 @@ def scrollDown(currOffset):
     zoomlvl = QWebEngineView.zoomFactor(mw.web)
     diff = round(mw.web.height()/zoomlvl/50)
     newOffset=currOffset+diff
-    mw.web.eval("$(function() { window.scrollTo({ top: %d, behavior: 'auto', }); });" % newOffset)
+    mw.web.eval("window.scrollTo({ top: %d, behavior: 'auto', });" % newOffset)
 
 def scrollUp(currOffset):
     zoomlvl = QWebEngineView.zoomFactor(mw.web)
     diff = round(mw.web.height()/zoomlvl/50)
     newOffset = 0 if currOffset-diff<0 else currOffset-diff
-    mw.web.eval("$(function() { window.scrollTo({ top: %d, behavior: 'auto', }); });" % newOffset)
+    mw.web.eval("window.scrollTo({ top: %d, behavior: 'auto', });" % newOffset)
 
 def pageDown(currOffset):
     zoomlvl = QWebEngineView.zoomFactor(mw.web)
     diff=round(mw.web.height()*3/4/zoomlvl)
     newOffset=currOffset+diff
-    mw.web.eval("$(function() { window.scrollTo({ top: %d, behavior: 'smooth', }); });" % newOffset)
+    mw.web.eval("window.scrollTo({ top: %d, behavior: 'smooth', });" % newOffset)
 
 def pageUp(currOffset):
     zoomlvl = QWebEngineView.zoomFactor(mw.web)
     diff=round(mw.web.height()*3/4/zoomlvl)
     newOffset = 0 if currOffset-diff<0 else currOffset-diff
-    mw.web.eval("$(function() { window.scrollTo({ top: %d, behavior: 'smooth', }); });" % newOffset)
+    mw.web.eval("window.scrollTo({ top: %d, behavior: 'smooth', });" % newOffset)
 
 def killCaffProcess():
     global caffeinated, caffprocess
@@ -156,7 +171,7 @@ def onAnkiClose():
 gui_hooks.profile_will_close.append(onAnkiClose)
 
 def handleMessage(msg):
-    global caffeinated, caffprocess, cafftimer
+    global caffeinated, caffprocess, cafftimer, myuuid, lastease
 
     print('Recd: '+msg)
 
@@ -185,6 +200,7 @@ def handleMessage(msg):
             with open(filepath, 'w') as writer:
                 writer.write(split[2])
         elif msg.startswith('setdeck'):
+            lastease = 0
             split = msg.split('~#$#~')
             mw.col.decks.select(mw.col.decks.id(split[1]))
             mw.moveToState("review")
@@ -215,11 +231,11 @@ def handleMessage(msg):
             elif msg=='pagedown':
                 mw.deckBrowser.web.evalWithCallback('window.pageYOffset', pageDown)
             elif msg=='ambossnext':
-                mw.web.eval("ambossTooltips.rotateTooltips();")
+                mw.web.eval("ambossAddon.tooltip.tooltips.rotateTooltips();")
             elif msg=='ambossprev':
-                mw.web.eval("ambossTooltips.rotateTooltips(true);")
+                mw.web.eval("ambossAddon.tooltip.tooltips.rotateTooltips(true);")
             elif msg=='ambossclose':
-                mw.web.eval("ambossTooltips.hideAll();")
+                mw.web.eval("ambossAddon.tooltip.tooltips.hideAll();")
             elif msg=='showhints':
                 showHintsJS = '''
                 var x=document.getElementsByClassName('hint');
@@ -234,54 +250,32 @@ def handleMessage(msg):
                 '''
                 mw.web.eval(showHintsJS)
             elif mw.reviewer.card and mw.reviewer.state=='answer':
-                for ease, label in mw.reviewer._answerButtonList():
-                    if msg==label.lower():
-                        mw.reviewer._answerCard(ease)
-                        colordict = {
-                            "again": "#ec1d24",
-                            "hard": "#ecb51d",
-                            "good": "#5BAE7E",
-                            "easy": "#4BA2CB"
-                        }
-                        feedbackJSp1 = """
-                        if(document.getElementById('snackbar')) {
-                        var snackbar = document.getElementById('snackbar');
-                        snackbar.parentNode.removeChild(snackbar)
-                        }
-                        var sheet = window.document.styleSheets[0];
-                        sheet.insertRule('#snackbar {  visibility: hidden;   min-width: 250px;  margin-left: -125px;  background-color: """
-                        feedbackJSp2 = """;  color: #fff;  text-align: center;  border-radius: 48px;  padding: 8px;  position: fixed;  z-index: 1;  left: 50%;  bottom: 30px;  font-size: 24px; font-weight: bold; }', sheet.cssRules.length);
-                        sheet.insertRule('#snackbar.show {  visibility: visible;  -webkit-animation: fadein 0.05s, fadeout 0.25s 0.75s;  animation: fadein 0.05s, fadeout 0.25s 0.75s;}', sheet.cssRules.length);
-                        sheet.insertRule('@-webkit-keyframes fadein {  from {bottom: 0; opacity: 0;}   to {bottom: 30px; opacity: 1;}}', sheet.cssRules.length);
-                        sheet.insertRule('@keyframes fadein {  from {bottom: 0; opacity: 0;}  to {bottom: 30px; opacity: 1;}}', sheet.cssRules.length);
-                        sheet.insertRule('@-webkit-keyframes fadeout {  from {bottom: 30px; opacity: 1;}   to {bottom: 0; opacity: 0;}}', sheet.cssRules.length);
-                        sheet.insertRule('@keyframes fadeout {  from {bottom: 30px; opacity: 1;}  to {bottom: 0; opacity: 0;}}', sheet.cssRules.length);
-
-                        var mytoast = document.createElement("div");
-                        mytoast.innerHTML = '"""
-                        feedbackJSp3 = """'
-                        mytoast.id="snackbar"
-                        document.body.appendChild(mytoast)
-                        var toastelement = document.getElementById("snackbar");
-                        toastelement.className = "show";
-                        setTimeout(function(){
-                        toastelement.className = toastelement.className.replace("show", "");
-                        for(i = 0;i<6;i++) {
-		                sheet.deleteRule(sheet.cssRules.length-1)
-                        }
-                        toastelement.parentNode.removeChild(toastelement);
-                        }, 1000);
-                        """
-                        feedbackJS = feedbackJSp1 + colordict[msg] + feedbackJSp2 + label + feedbackJSp3
-                        config = mw.addonManager.getConfig(__name__)
-                        if config['feedback']==True:
-                            mw.web.eval(feedbackJS)
+                # analytics
+                payloadAnsCard = {
+                    'v': 1,
+                    'tid': 'UA-171633786-4',
+                    'cid': myuuid,
+                    't': 'pageview',
+                    'dp': '/answered_card.html',
+                    'dt': 'answered_card',
+                    'z': random.randint(11111111,99999999),
+                }
+                requests.post("http://www.google-analytics.com/collect", data=payloadAnsCard)
+                # handle answer
+                if msg=='again':
+                    mw.reviewer._answerCard(1)
+                elif msg=='hard':
+                    mw.reviewer._answerCard(2)
+                elif msg=='good':
+                    mw.reviewer._answerCard(3)
+                elif msg=='easy':
+                    mw.reviewer._answerCard(4)
 
 
 mw.ankimote.handleMessage = handleMessage
 
 def runRemote():
-    global createqrjs1, createqrjs2, createqrjsMID, qrvisible, PORT
+    global createqrjs1, createqrjs2, createqrjsMID, qrvisible, PORT, myuuid
     if not qrvisible:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
@@ -310,6 +304,17 @@ def runRemote():
         mw.bottomWeb.eval(blurjs)
         mw.toolbarWeb.eval(blurjs)
         qrvisible=True
+        #analytics
+        payloadSession = {
+            'v': 1,
+            'tid': 'UA-171633786-4',
+            'cid': myuuid,
+            't': 'pageview',
+            'dp': '/session.html',
+            'dt': 'session',
+            'z': random.randint(11111111,99999999),
+        }
+        requests.post("http://www.google-analytics.com/collect", data=payloadSession)
     else:
         removeQRandBlur()
 
@@ -351,11 +356,88 @@ def addlink(links, toolbar):
 gui_hooks.top_toolbar_did_init_links.append(addlink)
 
 
+### feedback
+
+lastease = 0
+
+def savelastease(reviewer, card, ease):
+    global lastease
+    lastease = ease
+
+def resetease():
+    global lastease
+    lastease = 0
+
+def undocalled(card_id):
+    global lastease
+    lastease = 5
+
+def showfeedback(card):
+    global lastease
+    config = mw.addonManager.getConfig(__name__)
+    if config['feedback']==False:
+        return
+    if hasattr(mw.ankimote, 'wssThread'):
+        if len(mw.ankimote.wssThread.server.connections)==0:
+            return
+    else:
+        return
+    if lastease==0:
+        return
+    easedict = {
+        1: "Again",
+        2: "Hard",
+        3: "Good",
+        4: "Easy",
+        5: "Undo"
+    }
+    colordict = {
+        1: "#ec1d24",
+        2: "#ecb51d",
+        3: "#5BAE7E",
+        4: "#4BA2CB",
+        5: "#969A9C"
+    }
+    feedbackJSp1 = """
+    if(document.getElementById('snackbar')) {
+    var snackbar = document.getElementById('snackbar');
+    snackbar.parentNode.removeChild(snackbar)
+    }
+    var sheet = window.document.styleSheets[window.document.styleSheets.length - 1];
+    sheet.insertRule('#snackbar {  visibility: hidden;   min-width: 250px;  margin-left: -125px;  background-color: """
+    feedbackJSp2 = """;  color: #fff;  text-align: center;  border-radius: 48px;  padding: 8px;  position: fixed;  z-index: 1;  left: 50%;  bottom: 30px;  font-size: 24px; font-weight: bold; }', sheet.cssRules.length);
+    sheet.insertRule('#snackbar.show {  visibility: visible;  -webkit-animation: fadein 0.05s, fadeout 0.25s 0.75s;  animation: fadein 0.05s, fadeout 0.25s 0.75s;}', sheet.cssRules.length);
+    sheet.insertRule('@-webkit-keyframes fadein {  from {bottom: 0; opacity: 0;}   to {bottom: 30px; opacity: 1;}}', sheet.cssRules.length);
+    sheet.insertRule('@keyframes fadein {  from {bottom: 0; opacity: 0;}  to {bottom: 30px; opacity: 1;}}', sheet.cssRules.length);
+    sheet.insertRule('@-webkit-keyframes fadeout {  from {bottom: 30px; opacity: 1;}   to {bottom: 0; opacity: 0;}}', sheet.cssRules.length);
+    sheet.insertRule('@keyframes fadeout {  from {bottom: 30px; opacity: 1;}  to {bottom: 0; opacity: 0;}}', sheet.cssRules.length);
+
+    var mytoast = document.createElement("div");
+    mytoast.innerHTML = '"""
+    feedbackJSp3 = """'
+    mytoast.id="snackbar"
+    document.body.appendChild(mytoast)
+    var toastelement = document.getElementById("snackbar");
+    toastelement.className = "show";
+    setTimeout(function(){
+    toastelement.className = toastelement.className.replace("show", "");
+    for(i = 0;i<6;i++) {
+    sheet.deleteRule(sheet.cssRules.length-1)
+    }
+    toastelement.parentNode.removeChild(toastelement);
+    }, 1000);
+    """
+    feedbackJS = feedbackJSp1 + colordict[lastease] + feedbackJSp2 + easedict[lastease] + feedbackJSp3
+    mw.web.eval(feedbackJS)
 
 
+gui_hooks.reviewer_did_answer_card.append(savelastease)
+gui_hooks.reviewer_did_show_question.append(showfeedback)
+gui_hooks.reviewer_will_end.append(resetease)
+gui_hooks.review_did_undo.append(undocalled)
 
 
-
+### helper javascript
 
 createqrjs1='''
 var QRCode;

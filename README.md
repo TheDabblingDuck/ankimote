@@ -52,4 +52,9 @@ Tap mode (best in landscape)
 
 ## Privacy
 
-Ankimote uses Google Analytics to count users.
+Ankimote uses Google Analytics to measure anonymized user engagement.
+
+
+## Updates
+
+* 07-27-21: Fixed feedback and scrolling for the latest versions of Anki (tested on 2.1.45). Updated AMBOSS integration for the latest version of the AMBOSS addon (07-26-21 update).
