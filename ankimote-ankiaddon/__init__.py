@@ -262,14 +262,31 @@ def handleMessage(msg):
                 }
                 requests.post("http://www.google-analytics.com/collect", data=payloadAnsCard)
                 # handle answer
-                if msg=='again':
-                    mw.reviewer._answerCard(1)
-                elif msg=='hard':
-                    mw.reviewer._answerCard(2)
-                elif msg=='good':
-                    mw.reviewer._answerCard(3)
-                elif msg=='easy':
-                    mw.reviewer._answerCard(4)
+                bcount = mw.col.sched.answerButtons(mw.reviewer.card)
+                if bcount<3:
+                    # v1 scheduler and learning or relearning
+                    if msg=='again':
+                        mw.reviewer._answerCard(1)
+                    elif msg=='good':
+                        mw.reviewer._answerCard(2)
+                elif bcount<4:
+                    # v1 scheduler and learning or relearning
+                    if msg=='again':
+                        mw.reviewer._answerCard(1)
+                    elif msg=='good':
+                        mw.reviewer._answerCard(2)
+                    elif msg=='easy':
+                        mw.reviewer._answerCard(3)
+                else:
+                    # v2 scheduler (always 4 buttons) or V1 scheduler nonlearning
+                    if msg=='again':
+                        mw.reviewer._answerCard(1)
+                    elif msg=='hard':
+                        mw.reviewer._answerCard(2)
+                    elif msg=='good':
+                        mw.reviewer._answerCard(3)
+                    elif msg=='easy':
+                        mw.reviewer._answerCard(4)
 
 
 mw.ankimote.handleMessage = handleMessage
