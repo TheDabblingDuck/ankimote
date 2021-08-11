@@ -40,6 +40,8 @@ caffprocess=None
 cafftimer=None
 qrvisible=False
 
+lastease = 0
+
 #handle uuid for analytics
 myuuid=''
 uuidpath = USERFILES+'/uuid'
@@ -221,6 +223,7 @@ def handleMessage(msg):
             if msg=='good' and mw.reviewer.state=='question':
                 mw.reviewer._showAnswer()
             elif msg=='undo':
+                lastease=5
                 mw.onUndo()
             elif msg=='scrollup':
                 mw.deckBrowser.web.evalWithCallback('window.pageYOffset', scrollUp)
@@ -261,6 +264,15 @@ def handleMessage(msg):
                     'z': random.randint(11111111,99999999),
                 }
                 requests.post("http://www.google-analytics.com/collect", data=payloadAnsCard)
+                # save last ease for feedback
+                if msg=='again':
+                    lastease=1
+                elif msg=='hard':
+                    lastease=2
+                elif msg=='good':
+                    lastease=3
+                elif msg=='easy':
+                    lastease=4
                 # handle answer
                 bcount = mw.col.sched.answerButtons(mw.reviewer.card)
                 if bcount<3:
@@ -375,31 +387,16 @@ gui_hooks.top_toolbar_did_init_links.append(addlink)
 
 ### feedback
 
-lastease = 0
-
-def savelastease(reviewer, card, ease):
-    global lastease
-    lastease = ease
-
 def resetease():
     global lastease
     lastease = 0
 
-def undocalled(card_id):
-    global lastease
-    lastease = 5
-
 def showfeedback(card):
     global lastease
+    if lastease==0:
+        return
     config = mw.addonManager.getConfig(__name__)
     if config['feedback']==False:
-        return
-    if hasattr(mw.ankimote, 'wssThread'):
-        if len(mw.ankimote.wssThread.server.connections)==0:
-            return
-    else:
-        return
-    if lastease==0:
         return
     easedict = {
         1: "Again",
@@ -446,12 +443,11 @@ def showfeedback(card):
     """
     feedbackJS = feedbackJSp1 + colordict[lastease] + feedbackJSp2 + easedict[lastease] + feedbackJSp3
     mw.web.eval(feedbackJS)
+    lastease=0
 
 
-gui_hooks.reviewer_did_answer_card.append(savelastease)
 gui_hooks.reviewer_did_show_question.append(showfeedback)
 gui_hooks.reviewer_will_end.append(resetease)
-gui_hooks.review_did_undo.append(undocalled)
 
 
 ### helper javascript
