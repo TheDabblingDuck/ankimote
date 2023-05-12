@@ -368,7 +368,9 @@ gui_hooks.webview_did_receive_js_message.append(handleUnblurMessage)
 action = QAction("Ankimote", mw)
 # set it to call testFunction when it's clicked
 action.triggered.connect(runRemote)
-action.setShortcut(QKeySequence("Ctrl+Shift+R"))
+config = mw.addonManager.getConfig(__name__)
+sc = config['shortcut']
+action.setShortcut(QKeySequence(sc))
 # and add it to the tools menu
 mw.form.menuTools.addAction(action)
 mw.toolbar.link_handlers["ankimote"] = runRemote
@@ -379,7 +381,7 @@ def addlink(links, toolbar):
         if hasattr(mw.ankimote.wssThread,'server'):
             hasConnection = (len(mw.ankimote.wssThread.server.connections)>0)
     text = "Ankimote " + ("✔" if hasConnection else "✘")
-    toolbaritem = toolbar.create_link("ankimote-toolbaritem",text,runRemote,"Shortcut: Ctrl+Shift+R")
+    toolbaritem = toolbar.create_link("ankimote-toolbaritem",text,runRemote,"Shortcut: {sc}")
     links.insert(len(links)-1,toolbaritem)
 
 gui_hooks.top_toolbar_did_init_links.append(addlink)
