@@ -9,5 +9,6 @@
   "cmd4-label": "CMD 4",
   "cmd4": "showInfo('CMD 4: replace with custom code in the Anki addon config page')",
   "cmd5-label": "CMD 5",
-  "cmd5": "mw.web.eval( \"alert('CMD 5: replace with custom code in the Anki addon config page');\" )"
+  "cmd5": "mw.web.eval( \"alert('CMD 5: replace with custom code in the Anki addon config page');\" )",
+  "shortcut": "Ctrl+Shift+R"
 }
